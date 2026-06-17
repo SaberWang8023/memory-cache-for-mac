@@ -60,6 +60,23 @@ mkdir -p "$(dirname "$CONFIG")"
 cat > "$CONFIG" <<EOF_CONFIG
 BACKEND=tmpfs
 CACHE_SIZE=1g
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+mkdir -p "$HOME_DIR/tmpfs"
+echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
+if HOME="$HOME_DIR" TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs" "$SCRIPT" >/tmp/memory-cache-runtime-env-tmpfs-missing.out 2>&1; then
+  fail "missing TMPFS_MOUNT_PATH with env fallback unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: TMPFS_MOUNT_PATH" /tmp/memory-cache-runtime-env-tmpfs-missing.out || fail "missing TMPFS_MOUNT_PATH env fallback was ignored"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=1g
 TMPFS_MOUNT_PATH="\$HOME/tmpfs"
 APFS_DISK_NAME=Ramdisk
 APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
@@ -68,6 +85,21 @@ if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-create-dirs.out
   fail "missing CREATE_DIRS unexpectedly succeeded"
 fi
 grep -Fq "Missing required config: CREATE_DIRS" /tmp/memory-cache-runtime-missing-create-dirs.out || fail "missing CREATE_DIRS error not found"
+
+HOME_DIR=$(make_home)
+CONFIG_OVERRIDE="$HOME_DIR/override-config"
+cat > "$CONFIG_OVERRIDE" <<EOF_CONFIG
+BACKEND=other
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" MEMORY_CACHE_CONFIG_PATH="$CONFIG_OVERRIDE" "$SCRIPT" >/tmp/memory-cache-runtime-config-path-override.out 2>&1; then
+  fail "MEMORY_CACHE_CONFIG_PATH override unexpectedly succeeded"
+fi
+grep -Fq "Unsupported backend" /tmp/memory-cache-runtime-config-path-override.out || fail "MEMORY_CACHE_CONFIG_PATH override was not used"
 
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"

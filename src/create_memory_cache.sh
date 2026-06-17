@@ -65,6 +65,7 @@ require_config_var() {
 
 load_config() {
   [ -f "$CONFIG_PATH" ] || fail "Missing config: $CONFIG_PATH. Re-run ./install.sh."
+  unset BACKEND CACHE_SIZE TMPFS_MOUNT_PATH APFS_DISK_NAME APFS_MOUNT_PATH CREATE_DIRS
   # shellcheck disable=SC1090
   . "$CONFIG_PATH"
 
