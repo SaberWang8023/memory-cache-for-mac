@@ -1,0 +1,21 @@
+install.sh
+  s_206423e421a409::t_931d5b41dc3cf0 185
+tests/install_test.sh
+  s_206423e421a409::t_1abaa0ca5c5088 43-44,59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "498ab1dd1030b2ad03abee1f8ecea8222a73a27b",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.3-codex-spark"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
