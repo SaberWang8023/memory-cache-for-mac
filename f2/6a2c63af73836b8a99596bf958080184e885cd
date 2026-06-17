@@ -1,0 +1,21 @@
+docs/superpowers/plans/2026-06-17-memory-cache-for-mac.md
+  s_206423e421a409::t_4b05b2f2f78fb6 1182
+  s_206423e421a409::t_5bd0df956b07a8 193
+  s_206423e421a409::t_47d4dd23d3c9c9 1-192,194-1181,1183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "f26a2c63af73836b8a99596bf958080184e885cd",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
