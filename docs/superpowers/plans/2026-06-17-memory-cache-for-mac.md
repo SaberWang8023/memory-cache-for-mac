@@ -323,11 +323,11 @@ choose_backend() {
   fi
 
   if [ -t 0 ]; then
-    echo "Choose backend:"
+    echo "Choose backend:" >&2
     if [ "$recommended" = "tmpfs" ]; then
-      echo "  1) tmpfs (recommended): directory-style volatile cache at ~/tmpfs"
-      echo "  2) APFS ramdisk: volume-style cache at /Volumes/Ramdisk"
-      printf "Press Enter for tmpfs, or type 2 for APFS ramdisk: "
+      echo "  1) tmpfs (recommended): directory-style volatile cache at ~/tmpfs" >&2
+      echo "  2) APFS ramdisk: volume-style cache at /Volumes/Ramdisk" >&2
+      printf "Press Enter for tmpfs, or type 2 for APFS ramdisk: " >&2
       read answer
       case "$answer" in
         ''|1) printf '%s\n' "tmpfs" ;;
@@ -335,8 +335,8 @@ choose_backend() {
         *) echo "Unsupported selection: $answer" >&2; exit 1 ;;
       esac
     else
-      echo "  1) APFS ramdisk (recommended): volume-style cache at /Volumes/Ramdisk"
-      printf "Press Enter for APFS ramdisk: "
+      echo "  1) APFS ramdisk (recommended): volume-style cache at /Volumes/Ramdisk" >&2
+      printf "Press Enter for APFS ramdisk: " >&2
       read answer
       case "$answer" in
         ''|1) printf '%s\n' "apfs" ;;
@@ -356,7 +356,7 @@ choose_size() {
   fi
 
   if [ -t 0 ]; then
-    printf "Cache size [%s]: " "$recommended"
+    printf "Cache size [%s]: " "$recommended" >&2
     read answer
     if [ -z "$answer" ]; then
       printf '%s\n' "$recommended"
