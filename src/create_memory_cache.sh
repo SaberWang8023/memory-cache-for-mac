@@ -55,17 +55,25 @@ ensure_child_dirs() {
   done
 }
 
+require_config_var() {
+  var_name=$1
+  eval "is_set=\${$var_name+x}"
+  [ "$is_set" = x ] || fail "Missing required config: $var_name"
+  eval "value=\${$var_name}"
+  [ -n "$value" ] || fail "Missing required config: $var_name"
+}
+
 load_config() {
   [ -f "$CONFIG_PATH" ] || fail "Missing config: $CONFIG_PATH. Re-run ./install.sh."
   # shellcheck disable=SC1090
   . "$CONFIG_PATH"
 
-  BACKEND=${BACKEND:-}
-  CACHE_SIZE=${CACHE_SIZE:-}
-  TMPFS_MOUNT_PATH=${TMPFS_MOUNT_PATH:-"$HOME/tmpfs"}
-  APFS_DISK_NAME=${APFS_DISK_NAME:-Ramdisk}
-  APFS_MOUNT_PATH=${APFS_MOUNT_PATH:-"/Volumes/$APFS_DISK_NAME"}
-  CREATE_DIRS=${CREATE_DIRS:-"Downloads Cache/Chrome Cache/Music"}
+  require_config_var BACKEND
+  require_config_var CACHE_SIZE
+  require_config_var TMPFS_MOUNT_PATH
+  require_config_var APFS_DISK_NAME
+  require_config_var APFS_MOUNT_PATH
+  require_config_var CREATE_DIRS
 
   case "$BACKEND" in
     tmpfs|apfs) ;;
@@ -73,6 +81,11 @@ load_config() {
   esac
 
   CACHE_SIZE=$(normalize_size "$CACHE_SIZE") || fail "Unsupported cache size: $CACHE_SIZE"
+
+  if [ "$BACKEND" = "apfs" ]; then
+    expected_apfs_mount_path="/Volumes/$APFS_DISK_NAME"
+    [ "$APFS_MOUNT_PATH" = "$expected_apfs_mount_path" ] || fail "APFS_MOUNT_PATH must match $expected_apfs_mount_path for apfs backend"
+  fi
 }
 
 mount_tmpfs_backend() {

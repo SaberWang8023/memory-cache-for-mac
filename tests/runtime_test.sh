@@ -40,6 +40,53 @@ grep -Fq "Unsupported backend" /tmp/memory-cache-runtime-bad-backend.out || fail
 
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH=
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-empty-tmpfs-path.out 2>&1; then
+  fail "empty TMPFS_MOUNT_PATH unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: TMPFS_MOUNT_PATH" /tmp/memory-cache-runtime-empty-tmpfs-path.out || fail "empty TMPFS_MOUNT_PATH error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-create-dirs.out 2>&1; then
+  fail "missing CREATE_DIRS unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: CREATE_DIRS" /tmp/memory-cache-runtime-missing-create-dirs.out || fail "missing CREATE_DIRS error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=apfs
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=FastRam
+APFS_MOUNT_PATH="\$HOME/custom-apfs"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-apfs-custom-path.out 2>&1; then
+  fail "custom APFS_MOUNT_PATH unexpectedly succeeded"
+fi
+grep -Fq "APFS_MOUNT_PATH must match /Volumes/FastRam for apfs backend" /tmp/memory-cache-runtime-apfs-custom-path.out || fail "custom APFS_MOUNT_PATH error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")" "$HOME_DIR/tmpfs"
 echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
 cat > "$CONFIG" <<EOF_CONFIG
