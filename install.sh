@@ -182,6 +182,7 @@ write_config() {
 BACKEND=$backend
 CACHE_SIZE=$cache_size
 TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
 APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
 CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
 EOF_CONFIG
