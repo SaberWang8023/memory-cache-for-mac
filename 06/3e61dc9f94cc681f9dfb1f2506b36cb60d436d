@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-06-17-memory-cache-for-mac-design.md
+  s_206423e421a409::t_e2a48608891748 143
+  s_206423e421a409::t_79f668f17d343f 1-142,144-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "063e61dc9f94cc681f9dfb1f2506b36cb60d436d",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
