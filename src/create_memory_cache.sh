@@ -5,10 +5,17 @@ set -eu
 PATH=/usr/bin:/bin:/usr/sbin:/sbin
 export PATH
 
-MOUNT_TMPFS_CMD=${MOUNT_TMPFS_CMD:-mount_tmpfs}
-HDIUTIL_CMD=${HDIUTIL_CMD:-hdiutil}
-DISKUTIL_CMD=${DISKUTIL_CMD:-diskutil}
-MOUNT_CMD=${MOUNT_CMD:-mount}
+if [ "${MEMORY_CACHE_TEST_COMMANDS:-0}" = "1" ]; then
+  MOUNT_TMPFS_CMD=${MOUNT_TMPFS_CMD:-mount_tmpfs}
+  HDIUTIL_CMD=${HDIUTIL_CMD:-hdiutil}
+  DISKUTIL_CMD=${DISKUTIL_CMD:-diskutil}
+  MOUNT_CMD=${MOUNT_CMD:-mount}
+else
+  MOUNT_TMPFS_CMD=mount_tmpfs
+  HDIUTIL_CMD=hdiutil
+  DISKUTIL_CMD=diskutil
+  MOUNT_CMD=mount
+fi
 
 CONFIG_PATH="${MEMORY_CACHE_CONFIG_PATH:-$HOME/.config/memory-cache-for-mac/config}"
 
