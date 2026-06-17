@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-06-17-memory-cache-for-mac-design.md
+  s_206423e421a409::t_2a896d15ab512c 50-51,111,167
+tests/runtime_test.sh
+  s_206423e421a409::t_fa1c3ee37c92cd 177-230
+  s_206423e421a409::t_ca3464a2274bb0 123-124,129,176
+  s_206423e421a409::t_6045ad92f4cce7 142-145
+README.md
+  s_206423e421a409::t_2a896d15ab512c 93-94
+src/create_memory_cache.sh
+  s_206423e421a409::t_03edf4d99fb68e 129-132,140-147
+README.zh-CN.md
+  s_206423e421a409::t_2a896d15ab512c 93-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "38fc4862fe2806832b953d1192a2c1b1865cf9e5",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
