@@ -2,7 +2,7 @@
 
 set -eu
 
-PATH=/usr/bin:/bin:/usr/sbin:/sbin
+PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}
 export PATH
 
 CONFIG_PATH="${MEMORY_CACHE_CONFIG_PATH:-$HOME/.config/memory-cache-for-mac/config}"
@@ -123,7 +123,7 @@ mount_apfs_backend() {
   [ -n "$DISK_ID" ] || fail "Could not get ramdisk device id"
 
   diskutil partitionDisk "$DISK_ID" GPT APFS "$APFS_DISK_NAME" 0 || fail "diskutil partitionDisk failed"
-  [ -d "$APFS_MOUNT_PATH" ] || fail "Could not find $APFS_MOUNT_PATH"
+  is_mounted_at "$APFS_MOUNT_PATH" || fail "APFS volume was not mounted at $APFS_MOUNT_PATH"
   ensure_child_dirs "$APFS_MOUNT_PATH"
 }
 
