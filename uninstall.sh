@@ -12,6 +12,8 @@ INSTALL_SCRIPT="$HOME/.local/bin/create_memory_cache.sh"
 CONFIG_PATH="$HOME/.config/memory-cache-for-mac/config"
 OLD_PLIST_PATH="$HOME/Library/LaunchAgents/$OLD_LABEL.plist"
 OLD_INSTALL_SCRIPT="$HOME/.local/bin/create_ram_disk.sh"
+LOG_FILE="$HOME/Library/Logs/memory-cache.log"
+ERR_LOG_FILE="$HOME/Library/Logs/memory-cache.err.log"
 SKIP_LAUNCHCTL="${MEMORY_CACHE_SKIP_LAUNCHCTL:-0}"
 
 bootout_if_needed() {
@@ -29,6 +31,7 @@ bootout_if_needed "$OLD_LABEL" "$OLD_PLIST_PATH"
 
 rm -f "$PLIST_PATH" "$INSTALL_SCRIPT" "$CONFIG_PATH"
 rm -f "$OLD_PLIST_PATH" "$OLD_INSTALL_SCRIPT"
+rm -f "$LOG_FILE" "$ERR_LOG_FILE"
 
 echo "Uninstalled $LABEL"
 echo "Manual cleanup, if desired:"
