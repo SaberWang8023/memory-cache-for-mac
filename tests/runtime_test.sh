@@ -159,7 +159,11 @@ echo "/dev/disk1s1 on /Applications"
 EOF_STUB
 chmod 755 "$STUB_DIR/mount"
 
-if HOME="$HOME_DIR" PATH="$STUB_DIR:/usr/bin:/bin:/usr/sbin:/sbin" "$SCRIPT" >/tmp/memory-cache-runtime-apfs-not-mounted.out 2>&1; then
+if HOME="$HOME_DIR" \
+  HDIUTIL_CMD="$STUB_DIR/hdiutil" \
+  DISKUTIL_CMD="$STUB_DIR/diskutil" \
+  MOUNT_CMD="$STUB_DIR/mount" \
+  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-not-mounted.out 2>&1; then
   fail "apfs mountpoint missing path unexpectedly succeeded"
 fi
 grep -Fq "APFS volume was not mounted at /Volumes/Ramdisk" /tmp/memory-cache-runtime-apfs-not-mounted.out || fail "apfs mountpoint error not found"

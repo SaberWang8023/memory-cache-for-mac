@@ -2,8 +2,13 @@
 
 set -eu
 
-PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
 export PATH
+
+MOUNT_TMPFS_CMD=${MOUNT_TMPFS_CMD:-mount_tmpfs}
+HDIUTIL_CMD=${HDIUTIL_CMD:-hdiutil}
+DISKUTIL_CMD=${DISKUTIL_CMD:-diskutil}
+MOUNT_CMD=${MOUNT_CMD:-mount}
 
 CONFIG_PATH="${MEMORY_CACHE_CONFIG_PATH:-$HOME/.config/memory-cache-for-mac/config}"
 
@@ -45,7 +50,7 @@ size_to_blocks() {
 
 is_mounted_at() {
   path=$1
-  mount | grep -Fq " on $path "
+  "$MOUNT_CMD" | grep -Fq " on $path "
 }
 
 ensure_child_dirs() {
@@ -90,7 +95,7 @@ load_config() {
 }
 
 mount_tmpfs_backend() {
-  command -v mount_tmpfs >/dev/null 2>&1 || fail "tmpfs backend requires mount_tmpfs"
+  command -v "$MOUNT_TMPFS_CMD" >/dev/null 2>&1 || fail "tmpfs backend requires mount_tmpfs"
 
   if is_mounted_at "$TMPFS_MOUNT_PATH"; then
     ensure_child_dirs "$TMPFS_MOUNT_PATH"
@@ -103,7 +108,7 @@ mount_tmpfs_backend() {
   fi
 
   mkdir -p "$TMPFS_MOUNT_PATH"
-  mount_tmpfs -i -s "$CACHE_SIZE" "$TMPFS_MOUNT_PATH" || fail "mount_tmpfs failed"
+  "$MOUNT_TMPFS_CMD" -i -s "$CACHE_SIZE" "$TMPFS_MOUNT_PATH" || fail "mount_tmpfs failed"
   ensure_child_dirs "$TMPFS_MOUNT_PATH"
 }
 
@@ -119,10 +124,10 @@ mount_apfs_backend() {
   fi
 
   blocks=$(size_to_blocks "$CACHE_SIZE") || fail "Unsupported cache size: $CACHE_SIZE"
-  DISK_ID=$(hdiutil attach -nomount "ram://$blocks" | awk 'NR==1 { print $1 }') || fail "hdiutil attach failed"
+  DISK_ID=$("$HDIUTIL_CMD" attach -nomount "ram://$blocks" | awk 'NR==1 { print $1 }') || fail "hdiutil attach failed"
   [ -n "$DISK_ID" ] || fail "Could not get ramdisk device id"
 
-  diskutil partitionDisk "$DISK_ID" GPT APFS "$APFS_DISK_NAME" 0 || fail "diskutil partitionDisk failed"
+  "$DISKUTIL_CMD" partitionDisk "$DISK_ID" GPT APFS "$APFS_DISK_NAME" 0 || fail "diskutil partitionDisk failed"
   is_mounted_at "$APFS_MOUNT_PATH" || fail "APFS volume was not mounted at $APFS_MOUNT_PATH"
   ensure_child_dirs "$APFS_MOUNT_PATH"
 }
