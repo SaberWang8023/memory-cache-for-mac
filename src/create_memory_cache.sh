@@ -126,7 +126,10 @@ mount_apfs_backend() {
     return
   fi
 
-  if [ -d "$APFS_MOUNT_PATH" ] && [ -z "$(ls -A "$APFS_MOUNT_PATH" 2>/dev/null)" ]; then
+  if [ -d "$APFS_MOUNT_PATH" ]; then
+    if [ -n "$(ls -A "$APFS_MOUNT_PATH" 2>/dev/null)" ]; then
+      fail "Refusing to mount over non-empty directory: $APFS_MOUNT_PATH"
+    fi
     rmdir "$APFS_MOUNT_PATH"
   fi
 
@@ -134,8 +137,14 @@ mount_apfs_backend() {
   DISK_ID=$("$HDIUTIL_CMD" attach -nomount "ram://$blocks" | awk 'NR==1 { print $1 }') || fail "hdiutil attach failed"
   [ -n "$DISK_ID" ] || fail "Could not get ramdisk device id"
 
-  "$DISKUTIL_CMD" partitionDisk "$DISK_ID" GPT APFS "$APFS_DISK_NAME" 0 || fail "diskutil partitionDisk failed"
-  is_mounted_at "$APFS_MOUNT_PATH" || fail "APFS volume was not mounted at $APFS_MOUNT_PATH"
+  if ! "$DISKUTIL_CMD" partitionDisk "$DISK_ID" GPT APFS "$APFS_DISK_NAME" 0; then
+    "$HDIUTIL_CMD" detach "$DISK_ID" >/dev/null 2>&1 || true
+    fail "diskutil partitionDisk failed"
+  fi
+  if ! is_mounted_at "$APFS_MOUNT_PATH"; then
+    "$HDIUTIL_CMD" detach "$DISK_ID" >/dev/null 2>&1 || true
+    fail "APFS volume was not mounted at $APFS_MOUNT_PATH"
+  fi
   ensure_child_dirs "$APFS_MOUNT_PATH"
 }
 

@@ -90,6 +90,8 @@ APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
 CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
 ```
 
+`TMPFS_MOUNT_PATH` 可以自定义。对于 APFS backend，`APFS_MOUNT_PATH` 必须保持为 `/Volumes/$APFS_DISK_NAME`。如果要修改 APFS 默认挂载位置，只支持通过修改 `APFS_DISK_NAME` 来改变派生出的 `/Volumes/<name>`，不支持任意 APFS mount path。
+
 ## 从 ramdisk-for-mac 迁移
 
 安装这个版本会停止并移除旧的 `com.local.ramdisk` LaunchAgent 和 `~/.local/bin/create_ram_disk.sh`。

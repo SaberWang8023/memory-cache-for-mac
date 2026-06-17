@@ -47,6 +47,8 @@
 - `tmpfs`：`~/tmpfs`
 - `apfs`：`/Volumes/Ramdisk`
 
+其中 `tmpfs` 路径可由用户修改。APFS 路径由 `APFS_DISK_NAME` 派生，必须匹配 `/Volumes/$APFS_DISK_NAME`，不支持任意 APFS mount path。
+
 挂载后的缓存根目录下默认创建：
 
 - `Downloads`
@@ -106,7 +108,7 @@ APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
 CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
 ```
 
-运行脚本每次执行时都应读取这个文件。这样用户可以修改 backend、容量、路径或目录列表，而不需要编辑已安装的脚本。`CACHE_SIZE` 至少应支持 `m` 和 `g` 后缀，例如 `512m`、`1g`、`2g`。
+运行脚本每次执行时都应读取这个文件。这样用户可以修改 backend、容量、路径或目录列表，而不需要编辑已安装的脚本。`CACHE_SIZE` 至少应支持 `m` 和 `g` 后缀，例如 `512m`、`1g`、`2g`。其中 `TMPFS_MOUNT_PATH` 可配置；APFS backend 的 `APFS_MOUNT_PATH` 必须保持 `/Volumes/$APFS_DISK_NAME`，如果要改变 APFS 默认路径，只支持修改 `APFS_DISK_NAME`。
 
 ## 安装文件
 
@@ -162,7 +164,7 @@ mount_tmpfs -i -s "$CACHE_SIZE" "$TMPFS_MOUNT_PATH"
 - 复用当前的 `hdiutil attach ram://...` 流程
 - 将 `CACHE_SIZE` 转换为 `hdiutil ram://` 所需的 512 字节块数
 - 使用 `diskutil partitionDisk` 将 ram disk 分区为 APFS
-- 默认挂载到 `/Volumes/Ramdisk`
+- 挂载路径由 `APFS_DISK_NAME` 派生，保持 `/Volumes/$APFS_DISK_NAME`
 - 在 APFS 根目录下创建同一组子目录
 
 ## 卸载行为

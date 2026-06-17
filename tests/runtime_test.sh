@@ -120,11 +120,13 @@ grep -Fq "APFS_MOUNT_PATH must match /Volumes/FastRam for apfs backend" /tmp/mem
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
+APFS_NAME="../private/tmp/memory-cache-apfs-not-mounted-$PPID"
+APFS_PATH="/Volumes/$APFS_NAME"
 cat > "$CONFIG" <<EOF_CONFIG
 BACKEND=apfs
 CACHE_SIZE=1g
 TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
+APFS_DISK_NAME=$APFS_NAME
 APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
 CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
 EOF_CONFIG
@@ -135,6 +137,10 @@ cat > "$STUB_DIR/hdiutil" <<'EOF_STUB'
 #!/bin/sh
 if [ "$1" = "attach" ] && [ "$2" = "-nomount" ]; then
   echo "/dev/disk9"
+  exit 0
+fi
+if [ "$1" = "detach" ] && [ "$2" = "/dev/disk9" ]; then
+  touch "$0.detach.invoked"
   exit 0
 fi
 echo "unexpected hdiutil call: $*" >&2
@@ -167,7 +173,61 @@ if HOME="$HOME_DIR" \
   "$SCRIPT" >/tmp/memory-cache-runtime-apfs-not-mounted.out 2>&1; then
   fail "apfs mountpoint missing path unexpectedly succeeded"
 fi
-grep -Fq "APFS volume was not mounted at /Volumes/Ramdisk" /tmp/memory-cache-runtime-apfs-not-mounted.out || fail "apfs mountpoint error not found"
+grep -Fq "APFS volume was not mounted at $APFS_PATH" /tmp/memory-cache-runtime-apfs-not-mounted.out || fail "apfs mountpoint error not found"
+[ -f "$STUB_DIR/hdiutil.detach.invoked" ] || fail "apfs mountpoint failure did not detach attached ramdisk"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+APFS_NAME="../private/tmp/memory-cache-apfs-nonempty-$PPID"
+APFS_PATH="/Volumes/$APFS_NAME"
+TARGET_PATH=$(CDPATH= cd "$(dirname "$APFS_PATH")" && pwd)/$(basename "$APFS_PATH")
+mkdir -p "$TARGET_PATH"
+echo "keep me" > "$TARGET_PATH/existing.txt"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=apfs
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=$APFS_NAME
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+
+STUB_DIR="$HOME_DIR/bin-stubs-apfs-nonempty"
+mkdir -p "$STUB_DIR"
+cat > "$STUB_DIR/hdiutil" <<'EOF_STUB'
+#!/bin/sh
+touch "$0.invoked"
+echo "unexpected hdiutil invocation" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/hdiutil"
+
+cat > "$STUB_DIR/diskutil" <<'EOF_STUB'
+#!/bin/sh
+touch "$0.invoked"
+echo "unexpected diskutil invocation" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/diskutil"
+
+cat > "$STUB_DIR/mount" <<'EOF_STUB'
+#!/bin/sh
+echo "/dev/disk0s1 on /"
+EOF_STUB
+chmod 755 "$STUB_DIR/mount"
+
+if HOME="$HOME_DIR" \
+  HDIUTIL_CMD="$STUB_DIR/hdiutil" \
+  DISKUTIL_CMD="$STUB_DIR/diskutil" \
+  MOUNT_CMD="$STUB_DIR/mount" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-nonempty.out 2>&1; then
+  fail "non-empty apfs target unexpectedly succeeded"
+fi
+grep -Fq "Refusing to mount over non-empty directory" /tmp/memory-cache-runtime-apfs-nonempty.out || fail "non-empty apfs directory error not found"
+[ ! -f "$STUB_DIR/hdiutil.invoked" ] || fail "hdiutil attach was called before rejecting non-empty apfs target"
+[ ! -f "$STUB_DIR/diskutil.invoked" ] || fail "diskutil was called before rejecting non-empty apfs target"
 
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
