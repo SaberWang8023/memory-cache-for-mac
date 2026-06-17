@@ -237,6 +237,35 @@ fi
 grep -Fq "Refusing to mount over non-empty directory" /tmp/memory-cache-runtime-nonempty.out || fail "non-empty directory error not found"
 
 HOME_DIR=$(make_home)
+if ! MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" \
+  --backend tmpfs --size 512m >/tmp/memory-cache-runtime-install.out 2>&1; then
+  fail "install script failed for tmpfs"
+fi
+
+HOME_BIN="$HOME_DIR/.local/bin"
+mkdir -p "$HOME_BIN"
+mkdir -p "$HOME_DIR/tmpfs"
+echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
+
+STUB_DIR="$HOME_DIR/bin-stubs"
+mkdir -p "$STUB_DIR"
+cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
+#!/bin/sh
+echo "unexpected mount_tmpfs invocation" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/mount_tmpfs"
+
+if HOME="$HOME_DIR" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
+  "$HOME_BIN/create_memory_cache.sh" >/tmp/memory-cache-runtime-install-generated.out 2>&1; then
+  fail "install-generated runtime config unexpectedly succeeded"
+fi
+grep -Fq "Refusing to mount over non-empty directory: $HOME_DIR/tmpfs" /tmp/memory-cache-runtime-install-generated.out \
+  || fail "generated TMPFS_MOUNT_PATH was not expanded to runtime HOME"
+
+HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
 cat > "$CONFIG" <<EOF_CONFIG
