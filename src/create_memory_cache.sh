@@ -75,6 +75,16 @@ require_config_var() {
   [ -n "$value" ] || fail "Missing required config: $var_name"
 }
 
+validate_apfs_disk_name() {
+  case "$APFS_DISK_NAME" in
+    .|..) fail "Unsupported APFS_DISK_NAME: must be a single volume name" ;;
+  esac
+
+  if printf '%s' "$APFS_DISK_NAME" | LC_ALL=C grep '[[:cntrl:]:/]' >/dev/null 2>&1; then
+    fail "Unsupported APFS_DISK_NAME: must be a single volume name"
+  fi
+}
+
 load_config() {
   [ -f "$CONFIG_PATH" ] || fail "Missing config: $CONFIG_PATH. Re-run ./install.sh."
   unset BACKEND CACHE_SIZE TMPFS_MOUNT_PATH APFS_DISK_NAME APFS_MOUNT_PATH CREATE_DIRS
@@ -96,6 +106,7 @@ load_config() {
   CACHE_SIZE=$(normalize_size "$CACHE_SIZE") || fail "Unsupported cache size: $CACHE_SIZE"
 
   if [ "$BACKEND" = "apfs" ]; then
+    validate_apfs_disk_name
     expected_apfs_mount_path="/Volumes/$APFS_DISK_NAME"
     [ "$APFS_MOUNT_PATH" = "$expected_apfs_mount_path" ] || fail "APFS_MOUNT_PATH must match $expected_apfs_mount_path for apfs backend"
   fi

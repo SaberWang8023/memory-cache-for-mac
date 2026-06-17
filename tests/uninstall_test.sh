@@ -41,5 +41,6 @@ assert_absent "$HOME_DIR/Library/Logs/memory-cache.err.log"
 assert_dir "$HOME_DIR/tmpfs"
 [ -f "$HOME_DIR/tmpfs/keep.txt" ] || fail "tmpfs contents were removed"
 grep -Fq "Manual cleanup" /tmp/memory-cache-uninstall.out || fail "missing manual cleanup hint"
+grep -Fq "diskutil eject /Volumes/<APFS_DISK_NAME>" /tmp/memory-cache-uninstall.out || fail "missing APFS cleanup hint"
 
 echo "uninstall tests passed"

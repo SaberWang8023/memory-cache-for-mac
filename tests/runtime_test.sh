@@ -120,7 +120,7 @@ grep -Fq "APFS_MOUNT_PATH must match /Volumes/FastRam for apfs backend" /tmp/mem
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
-APFS_NAME="../private/tmp/memory-cache-apfs-not-mounted-$PPID"
+APFS_NAME="RamdiskDetach-$PPID"
 APFS_PATH="/Volumes/$APFS_NAME"
 cat > "$CONFIG" <<EOF_CONFIG
 BACKEND=apfs
@@ -179,11 +179,7 @@ grep -Fq "APFS volume was not mounted at $APFS_PATH" /tmp/memory-cache-runtime-a
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
-APFS_NAME="../private/tmp/memory-cache-apfs-nonempty-$PPID"
-APFS_PATH="/Volumes/$APFS_NAME"
-TARGET_PATH=$(CDPATH= cd "$(dirname "$APFS_PATH")" && pwd)/$(basename "$APFS_PATH")
-mkdir -p "$TARGET_PATH"
-echo "keep me" > "$TARGET_PATH/existing.txt"
+APFS_NAME="../private/tmp/foo"
 cat > "$CONFIG" <<EOF_CONFIG
 BACKEND=apfs
 CACHE_SIZE=1g
@@ -222,12 +218,12 @@ if HOME="$HOME_DIR" \
   DISKUTIL_CMD="$STUB_DIR/diskutil" \
   MOUNT_CMD="$STUB_DIR/mount" \
   MEMORY_CACHE_TEST_COMMANDS=1 \
-  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-nonempty.out 2>&1; then
-  fail "non-empty apfs target unexpectedly succeeded"
+  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-invalid-name.out 2>&1; then
+  fail "invalid APFS_DISK_NAME unexpectedly succeeded"
 fi
-grep -Fq "Refusing to mount over non-empty directory" /tmp/memory-cache-runtime-apfs-nonempty.out || fail "non-empty apfs directory error not found"
-[ ! -f "$STUB_DIR/hdiutil.invoked" ] || fail "hdiutil attach was called before rejecting non-empty apfs target"
-[ ! -f "$STUB_DIR/diskutil.invoked" ] || fail "diskutil was called before rejecting non-empty apfs target"
+grep -Fq "Unsupported APFS_DISK_NAME: must be a single volume name" /tmp/memory-cache-runtime-apfs-invalid-name.out || fail "invalid APFS_DISK_NAME error not found"
+[ ! -f "$STUB_DIR/hdiutil.invoked" ] || fail "hdiutil attach was called before rejecting invalid APFS_DISK_NAME"
+[ ! -f "$STUB_DIR/diskutil.invoked" ] || fail "diskutil was called before rejecting invalid APFS_DISK_NAME"
 
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
