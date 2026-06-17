@@ -1,0 +1,74 @@
+#!/bin/sh
+
+set -eu
+
+ROOT=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
+SCRIPT="$ROOT/src/create_memory_cache.sh"
+
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
+
+make_home() {
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/memory-cache-runtime.XXXXXX")
+  mkdir -p "$tmp/home"
+  printf '%s\n' "$tmp/home"
+}
+
+HOME_DIR=$(make_home)
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing.out 2>&1; then
+  fail "missing config unexpectedly succeeded"
+fi
+grep -Fq "Missing config" /tmp/memory-cache-runtime-missing.out || fail "missing config error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=other
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-bad-backend.out 2>&1; then
+  fail "invalid backend unexpectedly succeeded"
+fi
+grep -Fq "Unsupported backend" /tmp/memory-cache-runtime-bad-backend.out || fail "invalid backend error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")" "$HOME_DIR/tmpfs"
+echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=1g
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-nonempty.out 2>&1; then
+  fail "non-empty ordinary tmpfs path unexpectedly succeeded"
+fi
+grep -Fq "Refusing to mount over non-empty directory" /tmp/memory-cache-runtime-nonempty.out || fail "non-empty directory error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=bad
+TMPFS_MOUNT_PATH="\$HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-bad-size.out 2>&1; then
+  fail "invalid cache size unexpectedly succeeded"
+fi
+grep -Fq "Unsupported cache size" /tmp/memory-cache-runtime-bad-size.out || fail "invalid size error not found"
+
+echo "runtime tests passed"
