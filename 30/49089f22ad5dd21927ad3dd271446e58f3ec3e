@@ -1,0 +1,21 @@
+tests/runtime_test.sh
+  s_206423e421a409::t_d397fd6c29c67d 63-73,89-102
+src/create_memory_cache.sh
+  s_206423e421a409::t_1769c2a124e1fb 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "3049089f22ad5dd21927ad3dd271446e58f3ec3e",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.3-codex-spark"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
