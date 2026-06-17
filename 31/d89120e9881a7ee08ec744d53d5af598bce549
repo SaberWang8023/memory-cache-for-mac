@@ -1,0 +1,21 @@
+README.zh-CN.md
+  s_206423e421a409::t_ea05efdbcaaa17 1,5,7,9,11-14,16-37,41-42,47,49-53,56,59-63,66,68-71,74,76,78-80,82,85-90,93-97,100,103,105-107,109-114
+README.md
+  s_206423e421a409::t_ea05efdbcaaa17 1,5,7,9,11-14,16-37,41-42,47,49-53,56,59-63,66,68-71,74,76,78-80,82,85-90,93-97,100,103,105-107,109-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "31d89120e9881a7ee08ec744d53d5af598bce549",
+  "prompts": {},
+  "sessions": {
+    "s_206423e421a409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed497-b375-7363-b56a-7e30de832124",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
