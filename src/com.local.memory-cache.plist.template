@@ -3,14 +3,14 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.local.ramdisk</string>
+	<string>com.local.memory-cache</string>
 	<key>Program</key>
-	<string>__HOME__/.local/bin/create_ram_disk.sh</string>
+	<string>__HOME__/.local/bin/create_memory_cache.sh</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardOutPath</key>
-	<string>__HOME__/Library/Logs/ramdisk.log</string>
+	<string>__HOME__/Library/Logs/memory-cache.log</string>
 	<key>StandardErrorPath</key>
-	<string>__HOME__/Library/Logs/ramdisk.err.log</string>
+	<string>__HOME__/Library/Logs/memory-cache.err.log</string>
 </dict>
 </plist>
