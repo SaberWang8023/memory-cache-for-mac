@@ -49,6 +49,7 @@ HOME="$HOME_DIR" \
 DAEMON_CONFIG="$SANDBOX_ROOT/Library/Application Support/memory-cache-for-mac/config"
 assert_file "$DAEMON_CONFIG"
 assert_contains "$DAEMON_CONFIG" "BACKEND=tmpfs"
+assert_contains "$DAEMON_CONFIG" "CACHE_SIZE=2g"
 assert_contains "$DAEMON_CONFIG" "SERVICE_MODE=daemon"
 assert_contains "$DAEMON_CONFIG" "TARGET_USER=saber"
 assert_contains "$DAEMON_CONFIG" "TARGET_HOME=$HOME_DIR"
@@ -65,6 +66,7 @@ HOME="$HOME_DIR" \
 AGENT_CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 assert_file "$AGENT_CONFIG"
 assert_contains "$AGENT_CONFIG" "BACKEND=apfs"
+assert_contains "$AGENT_CONFIG" "CACHE_SIZE=512m"
 assert_contains "$AGENT_CONFIG" "SERVICE_MODE=agent"
 assert_contains "$AGENT_CONFIG" "TARGET_HOME=$HOME_DIR"
 assert_contains "$AGENT_CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
@@ -87,5 +89,17 @@ HOME="$HOME_DIR" \
 assert_not_exists "$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
 assert_not_exists "$SANDBOX_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
+
+HOME_DIR=$(make_home)
+if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend invalid >/tmp/memory-cache-install-bad-backend.out 2>&1; then
+  fail "invalid backend unexpectedly succeeded"
+fi
+grep -Fq "Unsupported backend" /tmp/memory-cache-install-bad-backend.out || fail "missing invalid backend error"
+
+HOME_DIR=$(make_home)
+if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --size banana >/tmp/memory-cache-install-bad-size.out 2>&1; then
+  fail "invalid size unexpectedly succeeded"
+fi
+grep -Fq "Unsupported cache size" /tmp/memory-cache-install-bad-size.out || fail "missing invalid size error"
 
 echo "install tests passed"
