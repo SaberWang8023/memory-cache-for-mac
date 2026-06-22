@@ -37,53 +37,55 @@ grep -Fq "tmpfs backend requires sudo because it installs a LaunchDaemon and mou
   /tmp/memory-cache-install-tmpfs-no-root.out || fail "missing tmpfs sudo error"
 
 HOME_DIR=$(make_home)
+SANDBOX_ROOT=$(dirname "$HOME_DIR")
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_MEMSIZE_BYTES=25769803776 \
 MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
 MEMORY_CACHE_TEST_TARGET_USER=saber \
-MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR/home" \
-HOME="$HOME_DIR/home" \
+MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR" \
+HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend tmpfs --size 2g >/tmp/memory-cache-install-daemon.out
 
-DAEMON_CONFIG="$HOME_DIR/Library/Application Support/memory-cache-for-mac/config"
+DAEMON_CONFIG="$SANDBOX_ROOT/Library/Application Support/memory-cache-for-mac/config"
 assert_file "$DAEMON_CONFIG"
 assert_contains "$DAEMON_CONFIG" "BACKEND=tmpfs"
 assert_contains "$DAEMON_CONFIG" "SERVICE_MODE=daemon"
 assert_contains "$DAEMON_CONFIG" "TARGET_USER=saber"
-assert_contains "$DAEMON_CONFIG" "TARGET_HOME=$HOME_DIR/home"
-assert_contains "$DAEMON_CONFIG" "TMPFS_MOUNT_PATH=\"$HOME_DIR/home/tmpfs\""
-assert_file "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
-assert_file "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
+assert_contains "$DAEMON_CONFIG" "TARGET_HOME=$HOME_DIR"
+assert_contains "$DAEMON_CONFIG" "TMPFS_MOUNT_PATH=\"$HOME_DIR/tmpfs\""
+assert_file "$SANDBOX_ROOT/usr/local/libexec/create_memory_cache.sh"
+assert_file "$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
 
 HOME_DIR=$(make_home)
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_MEMSIZE_BYTES=17179869184 \
-HOME="$HOME_DIR/home" \
+HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend apfs >/tmp/memory-cache-install-agent.out
 
-AGENT_CONFIG="$HOME_DIR/home/.config/memory-cache-for-mac/config"
+AGENT_CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 assert_file "$AGENT_CONFIG"
 assert_contains "$AGENT_CONFIG" "BACKEND=apfs"
 assert_contains "$AGENT_CONFIG" "SERVICE_MODE=agent"
-assert_contains "$AGENT_CONFIG" "TARGET_HOME=$HOME_DIR/home"
+assert_contains "$AGENT_CONFIG" "TARGET_HOME=$HOME_DIR"
 assert_contains "$AGENT_CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
-assert_file "$HOME_DIR/home/.local/bin/create_memory_cache.sh"
-assert_file "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
+assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
+assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 
 HOME_DIR=$(make_home)
-mkdir -p "$HOME_DIR/home/.local/bin" "$HOME_DIR/home/Library/LaunchAgents" "$HOME_DIR/Library/LaunchDaemons" "$HOME_DIR/usr/local/libexec"
-: > "$HOME_DIR/home/.local/bin/create_memory_cache.sh"
-: > "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
-: > "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
-: > "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
+SANDBOX_ROOT=$(dirname "$HOME_DIR")
+mkdir -p "$HOME_DIR/.local/bin" "$HOME_DIR/Library/LaunchAgents" "$SANDBOX_ROOT/Library/LaunchDaemons" "$SANDBOX_ROOT/usr/local/libexec"
+: > "$HOME_DIR/.local/bin/create_memory_cache.sh"
+: > "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
+: > "$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+: > "$SANDBOX_ROOT/usr/local/libexec/create_memory_cache.sh"
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
 MEMORY_CACHE_TEST_TARGET_USER=saber \
-MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR/home" \
-HOME="$HOME_DIR/home" \
+MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR" \
+HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend apfs --size 1g >/tmp/memory-cache-install-switch-to-agent.out
-assert_not_exists "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
-assert_not_exists "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
-assert_file "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
+assert_not_exists "$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+assert_not_exists "$SANDBOX_ROOT/usr/local/libexec/create_memory_cache.sh"
+assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 
 echo "install tests passed"
