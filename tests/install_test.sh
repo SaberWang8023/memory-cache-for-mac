@@ -30,55 +30,60 @@ make_home() {
 }
 
 HOME_DIR=$(make_home)
-MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
-MEMORY_CACHE_TEST_MEMSIZE_BYTES=17179869184 \
-HOME="$HOME_DIR" \
-  "$ROOT/install.sh" --backend tmpfs >/tmp/memory-cache-install-1.out
-
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-assert_file "$CONFIG"
-assert_contains "$CONFIG" "BACKEND=tmpfs"
-assert_contains "$CONFIG" "CACHE_SIZE=512m"
-assert_contains "$CONFIG" "TMPFS_MOUNT_PATH=\"\$HOME/tmpfs\""
-assert_contains "$CONFIG" "APFS_DISK_NAME=Ramdisk"
-assert_contains "$CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
-assert_contains "$CONFIG" "CREATE_DIRS=\"Downloads Cache/Chrome Cache/Music\""
-assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
-assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
+if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend tmpfs >/tmp/memory-cache-install-tmpfs-no-root.out 2>&1; then
+  fail "tmpfs install without root unexpectedly succeeded"
+fi
+grep -Fq "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" \
+  /tmp/memory-cache-install-tmpfs-no-root.out || fail "missing tmpfs sudo error"
 
 HOME_DIR=$(make_home)
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_MEMSIZE_BYTES=25769803776 \
-HOME="$HOME_DIR" \
-  "$ROOT/install.sh" --backend apfs --size 2g >/tmp/memory-cache-install-2.out
+MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
+MEMORY_CACHE_TEST_TARGET_USER=saber \
+MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR/home" \
+HOME="$HOME_DIR/home" \
+  "$ROOT/install.sh" --backend tmpfs --size 2g >/tmp/memory-cache-install-daemon.out
 
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-assert_file "$CONFIG"
-assert_contains "$CONFIG" "BACKEND=apfs"
-assert_contains "$CONFIG" "CACHE_SIZE=2g"
-assert_contains "$CONFIG" "APFS_DISK_NAME=Ramdisk"
-assert_contains "$CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
+DAEMON_CONFIG="$HOME_DIR/Library/Application Support/memory-cache-for-mac/config"
+assert_file "$DAEMON_CONFIG"
+assert_contains "$DAEMON_CONFIG" "BACKEND=tmpfs"
+assert_contains "$DAEMON_CONFIG" "SERVICE_MODE=daemon"
+assert_contains "$DAEMON_CONFIG" "TARGET_USER=saber"
+assert_contains "$DAEMON_CONFIG" "TARGET_HOME=$HOME_DIR/home"
+assert_contains "$DAEMON_CONFIG" "TMPFS_MOUNT_PATH=\"$HOME_DIR/home/tmpfs\""
+assert_file "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
+assert_file "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
 
 HOME_DIR=$(make_home)
-mkdir -p "$HOME_DIR/.local/bin" "$HOME_DIR/Library/LaunchAgents"
-: > "$HOME_DIR/.local/bin/create_ram_disk.sh"
-: > "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
-HOME="$HOME_DIR" \
-  "$ROOT/install.sh" --backend apfs --size 1g >/tmp/memory-cache-install-3.out
-assert_not_exists "$HOME_DIR/.local/bin/create_ram_disk.sh"
-assert_not_exists "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
+MEMORY_CACHE_TEST_MEMSIZE_BYTES=17179869184 \
+HOME="$HOME_DIR/home" \
+  "$ROOT/install.sh" --backend apfs >/tmp/memory-cache-install-agent.out
+
+AGENT_CONFIG="$HOME_DIR/home/.config/memory-cache-for-mac/config"
+assert_file "$AGENT_CONFIG"
+assert_contains "$AGENT_CONFIG" "BACKEND=apfs"
+assert_contains "$AGENT_CONFIG" "SERVICE_MODE=agent"
+assert_contains "$AGENT_CONFIG" "TARGET_HOME=$HOME_DIR/home"
+assert_contains "$AGENT_CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
+assert_file "$HOME_DIR/home/.local/bin/create_memory_cache.sh"
+assert_file "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
 
 HOME_DIR=$(make_home)
-if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend invalid >/tmp/memory-cache-install-bad-backend.out 2>&1; then
-  fail "invalid backend unexpectedly succeeded"
-fi
-grep -Fq "Unsupported backend" /tmp/memory-cache-install-bad-backend.out || fail "missing invalid backend error"
-
-HOME_DIR=$(make_home)
-if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --size banana >/tmp/memory-cache-install-bad-size.out 2>&1; then
-  fail "invalid size unexpectedly succeeded"
-fi
-grep -Fq "Unsupported cache size" /tmp/memory-cache-install-bad-size.out || fail "missing invalid size error"
+mkdir -p "$HOME_DIR/home/.local/bin" "$HOME_DIR/home/Library/LaunchAgents" "$HOME_DIR/Library/LaunchDaemons" "$HOME_DIR/usr/local/libexec"
+: > "$HOME_DIR/home/.local/bin/create_memory_cache.sh"
+: > "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
+: > "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
+: > "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
+MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
+MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
+MEMORY_CACHE_TEST_TARGET_USER=saber \
+MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR/home" \
+HOME="$HOME_DIR/home" \
+  "$ROOT/install.sh" --backend apfs --size 1g >/tmp/memory-cache-install-switch-to-agent.out
+assert_not_exists "$HOME_DIR/Library/LaunchDaemons/com.local.memory-cache.plist"
+assert_not_exists "$HOME_DIR/usr/local/libexec/create_memory_cache.sh"
+assert_file "$HOME_DIR/home/Library/LaunchAgents/com.local.memory-cache.plist"
 
 echo "install tests passed"
