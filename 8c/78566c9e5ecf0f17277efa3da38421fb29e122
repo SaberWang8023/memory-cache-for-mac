@@ -1,0 +1,21 @@
+uninstall.sh
+  s_6932e316a582a9::t_1fec0be35a8239 11-13,32-60,75
+tests/uninstall_test.sh
+  s_6932e316a582a9::t_f07e7cafca6050 20-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "8c78566c9e5ecf0f17277efa3da38421fb29e122",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
