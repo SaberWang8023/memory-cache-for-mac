@@ -38,6 +38,15 @@ runtime_daemon_config_path() {
   printf '%s\n' "/Library/Application Support/memory-cache-for-mac/config"
 }
 
+is_daemon_runtime_context() {
+  script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+
+  case "$script_dir" in
+    */usr/local/libexec) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 normalize_size() {
   size=$1
   case "$size" in
@@ -128,7 +137,7 @@ resolve_default_config_path() {
     return
   fi
 
-  if [ -f "$daemon_config_path" ] && grep -Eq '^SERVICE_MODE=daemon$' "$daemon_config_path"; then
+  if is_daemon_runtime_context; then
     printf '%s\n' "$daemon_config_path"
     return
   fi

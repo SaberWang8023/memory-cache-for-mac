@@ -86,6 +86,44 @@ cat > "$CONFIG" <<EOF_CONFIG
 BACKEND=tmpfs
 SERVICE_MODE=agent
 CACHE_SIZE=1g
+TARGET_USER=
+TARGET_HOME="$HOME_DIR"
+TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-target-user.out 2>&1; then
+  fail "missing TARGET_USER unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: TARGET_USER" /tmp/memory-cache-runtime-missing-target-user.out || fail "missing TARGET_USER error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+SERVICE_MODE=agent
+CACHE_SIZE=1g
+TARGET_USER=saber
+TARGET_HOME=
+TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-target-home.out 2>&1; then
+  fail "missing TARGET_HOME unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: TARGET_HOME" /tmp/memory-cache-runtime-missing-target-home.out || fail "missing TARGET_HOME error not found"
+
+HOME_DIR=$(make_home)
+CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$CONFIG")"
+cat > "$CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+SERVICE_MODE=agent
+CACHE_SIZE=1g
 TARGET_USER=saber
 TARGET_HOME="$HOME_DIR"
 APFS_DISK_NAME=Ramdisk
@@ -467,6 +505,56 @@ grep -Fq "Refusing to mount over non-empty directory: $TARGET_HOME/tmpfs" /tmp/m
   || fail "daemon runtime did not prefer default daemon config path"
 
 HOME_DIR=$(make_home)
+TARGET_HOME="$HOME_DIR/target-home-broken"
+RUNTIME_HOME="$HOME_DIR/runtime-home-broken"
+SYSTEM_ROOT="$HOME_DIR/system-root-broken"
+USER_CONFIG="$RUNTIME_HOME/.config/memory-cache-for-mac/config"
+DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
+mkdir -p "$(dirname "$USER_CONFIG")" "$(dirname "$DAEMON_CONFIG")"
+cat > "$USER_CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+SERVICE_MODE=agent
+CACHE_SIZE=1g
+TARGET_USER=fallback-user
+TARGET_HOME="$RUNTIME_HOME"
+TMPFS_MOUNT_PATH="$RUNTIME_HOME/fallback-tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+cat > "$DAEMON_CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+CACHE_SIZE=1g
+TARGET_USER=
+TARGET_HOME="$TARGET_HOME"
+TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+
+STUB_DIR="$HOME_DIR/bin-stubs-daemon-broken"
+mkdir -p "$STUB_DIR"
+cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
+#!/bin/sh
+echo "unexpected mount_tmpfs invocation" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/mount_tmpfs"
+
+DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+mkdir -p "$(dirname "$DAEMON_SCRIPT")"
+cp "$SCRIPT" "$DAEMON_SCRIPT"
+if HOME="$RUNTIME_HOME" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
+  "$DAEMON_SCRIPT" >/tmp/memory-cache-runtime-daemon-broken-config.out 2>&1; then
+  fail "broken daemon config unexpectedly succeeded"
+fi
+grep -Fq "Missing required config: SERVICE_MODE" /tmp/memory-cache-runtime-daemon-broken-config.out \
+  || fail "broken daemon config fell back instead of failing explicitly"
+
+HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
 CHOWN_LOG="$HOME_DIR/chown.log"
@@ -564,6 +652,8 @@ fi
 [ -d "$HOME_DIR/tmpfs/Cache/Music" ] || fail "Cache/Music dir missing for already-mounted tmpfs"
 grep -Fq "saber $HOME_DIR/tmpfs" "$CHOWN_LOG" || fail "tmpfs root ownership was not fixed for already-mounted tmpfs"
 grep -Fq "saber $HOME_DIR/tmpfs/Downloads" "$CHOWN_LOG" || fail "Downloads ownership was not fixed for already-mounted tmpfs"
+grep -Fq "saber $HOME_DIR/tmpfs/Cache/Chrome" "$CHOWN_LOG" || fail "Cache/Chrome ownership was not fixed for already-mounted tmpfs"
+grep -Fq "saber $HOME_DIR/tmpfs/Cache/Music" "$CHOWN_LOG" || fail "Cache/Music ownership was not fixed for already-mounted tmpfs"
 
 HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
