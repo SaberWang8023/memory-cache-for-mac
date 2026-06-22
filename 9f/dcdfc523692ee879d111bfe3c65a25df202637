@@ -1,0 +1,20 @@
+install.sh
+  s_6932e316a582a9::t_9f3259d7fb4f87 347-358
+  s_6932e316a582a9::t_d26fe2646e053e 248-256,277-280,306,313,324,336-346,359,434,450
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "9fdcdfc523692ee879d111bfe3c65a25df202637",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
