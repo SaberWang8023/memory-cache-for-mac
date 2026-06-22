@@ -415,6 +415,58 @@ grep -Fq "Refusing to mount over non-empty directory: $TARGET_HOME/tmpfs" /tmp/m
   || fail "daemon runtime did not use TARGET_HOME tmpfs path"
 
 HOME_DIR=$(make_home)
+TARGET_HOME="$HOME_DIR/target-home-default"
+RUNTIME_HOME="$HOME_DIR/runtime-home-default"
+SYSTEM_ROOT="$HOME_DIR/system-root-default"
+USER_CONFIG="$RUNTIME_HOME/.config/memory-cache-for-mac/config"
+DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
+mkdir -p "$TARGET_HOME/tmpfs" "$(dirname "$USER_CONFIG")" "$(dirname "$DAEMON_CONFIG")"
+echo "keep me" > "$TARGET_HOME/tmpfs/existing.txt"
+cat > "$USER_CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+SERVICE_MODE=agent
+CACHE_SIZE=1g
+TARGET_USER=wrong-user
+TARGET_HOME="$RUNTIME_HOME"
+TMPFS_MOUNT_PATH="$RUNTIME_HOME/wrong-tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+cat > "$DAEMON_CONFIG" <<EOF_CONFIG
+BACKEND=tmpfs
+SERVICE_MODE=daemon
+CACHE_SIZE=1g
+TARGET_USER=saber
+TARGET_HOME="$TARGET_HOME"
+TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
+APFS_DISK_NAME=Ramdisk
+APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
+CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+EOF_CONFIG
+
+STUB_DIR="$HOME_DIR/bin-stubs-daemon-default"
+mkdir -p "$STUB_DIR"
+cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
+#!/bin/sh
+echo "unexpected mount_tmpfs invocation" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/mount_tmpfs"
+
+DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+mkdir -p "$(dirname "$DAEMON_SCRIPT")"
+cp "$SCRIPT" "$DAEMON_SCRIPT"
+if HOME="$RUNTIME_HOME" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
+  "$DAEMON_SCRIPT" >/tmp/memory-cache-runtime-daemon-default-path.out 2>&1; then
+  fail "daemon runtime default config path unexpectedly succeeded"
+fi
+grep -Fq "Refusing to mount over non-empty directory: $TARGET_HOME/tmpfs" /tmp/memory-cache-runtime-daemon-default-path.out \
+  || fail "daemon runtime did not prefer default daemon config path"
+
+HOME_DIR=$(make_home)
 CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 mkdir -p "$(dirname "$CONFIG")"
 CHOWN_LOG="$HOME_DIR/chown.log"

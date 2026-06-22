@@ -24,6 +24,20 @@ fail() {
   exit 1
 }
 
+runtime_daemon_config_path() {
+  script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+
+  case "$script_dir" in
+    */usr/local/libexec)
+      system_root=${script_dir%/usr/local/libexec}
+      printf '%s\n' "$system_root/Library/Application Support/memory-cache-for-mac/config"
+      return
+      ;;
+  esac
+
+  printf '%s\n' "/Library/Application Support/memory-cache-for-mac/config"
+}
+
 normalize_size() {
   size=$1
   case "$size" in
@@ -106,22 +120,25 @@ validate_apfs_disk_name() {
 }
 
 resolve_default_config_path() {
+  daemon_config_path=$(runtime_daemon_config_path)
+  user_config_path="$HOME/.config/memory-cache-for-mac/config"
+
   if [ -n "${MEMORY_CACHE_CONFIG_PATH:-}" ]; then
     printf '%s\n' "$MEMORY_CACHE_CONFIG_PATH"
     return
   fi
 
-  if [ -f "$HOME/.config/memory-cache-for-mac/config" ]; then
-    printf '%s\n' "$HOME/.config/memory-cache-for-mac/config"
+  if [ -f "$daemon_config_path" ] && grep -Eq '^SERVICE_MODE=daemon$' "$daemon_config_path"; then
+    printf '%s\n' "$daemon_config_path"
     return
   fi
 
-  if [ -f "/Library/Application Support/memory-cache-for-mac/config" ]; then
-    printf '%s\n' "/Library/Application Support/memory-cache-for-mac/config"
+  if [ -f "$user_config_path" ]; then
+    printf '%s\n' "$user_config_path"
     return
   fi
 
-  printf '%s\n' "$HOME/.config/memory-cache-for-mac/config"
+  printf '%s\n' "$user_config_path"
 }
 
 load_config_from() {
