@@ -1,0 +1,23 @@
+src/com.local.memory-cache.daemon.plist.template
+  s_6932e316a582a9::t_e78c0bcd3cdbf0 1-18
+tests/install_test.sh
+  s_6932e316a582a9::t_e78c0bcd3cdbf0 33-37,42-46,48-56,60-62,64-71,74-87
+src/com.local.memory-cache.agent.plist.template
+  s_6932e316a582a9::t_e78c0bcd3cdbf0 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "e52faacd956e8905c83b5af80f945e1877474651",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
