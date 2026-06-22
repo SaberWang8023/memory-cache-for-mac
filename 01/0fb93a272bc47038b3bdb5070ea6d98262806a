@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-06-22-backend-based-service-mode.md
+  s_6932e316a582a9::t_f54576e539a5a9 1-1022
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "010fb93a272bc47038b3bdb5070ea6d98262806a",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
