@@ -10,14 +10,14 @@ if [ "${MEMORY_CACHE_TEST_COMMANDS:-0}" = "1" ]; then
   HDIUTIL_CMD=${HDIUTIL_CMD:-hdiutil}
   DISKUTIL_CMD=${DISKUTIL_CMD:-diskutil}
   MOUNT_CMD=${MOUNT_CMD:-mount}
+  CHOWN_CMD=${CHOWN_CMD:-chown}
 else
   MOUNT_TMPFS_CMD=mount_tmpfs
   HDIUTIL_CMD=hdiutil
   DISKUTIL_CMD=diskutil
   MOUNT_CMD=mount
+  CHOWN_CMD=chown
 fi
-
-CONFIG_PATH="${MEMORY_CACHE_CONFIG_PATH:-$HOME/.config/memory-cache-for-mac/config}"
 
 fail() {
   echo "$*" >&2
@@ -67,6 +67,26 @@ ensure_child_dirs() {
   done
 }
 
+chown_path_if_needed() {
+  path=$1
+
+  case "${SERVICE_MODE:-}" in
+    daemon) ;;
+    *) return 0 ;;
+  esac
+
+  [ -n "${TARGET_USER:-}" ] || return 0
+  "$CHOWN_CMD" "$TARGET_USER" "$path" >/dev/null 2>&1 || fail "Failed to set ownership on $path"
+}
+
+fix_tmpfs_ownership() {
+  chown_path_if_needed "$TMPFS_MOUNT_PATH"
+
+  for dir in $CREATE_DIRS; do
+    chown_path_if_needed "$TMPFS_MOUNT_PATH/$dir"
+  done
+}
+
 require_config_var() {
   var_name=$1
   eval "is_set=\${$var_name+x}"
@@ -85,18 +105,48 @@ validate_apfs_disk_name() {
   fi
 }
 
-load_config() {
-  [ -f "$CONFIG_PATH" ] || fail "Missing config: $CONFIG_PATH. Re-run ./install.sh."
+resolve_default_config_path() {
+  if [ -n "${MEMORY_CACHE_CONFIG_PATH:-}" ]; then
+    printf '%s\n' "$MEMORY_CACHE_CONFIG_PATH"
+    return
+  fi
+
+  if [ -f "$HOME/.config/memory-cache-for-mac/config" ]; then
+    printf '%s\n' "$HOME/.config/memory-cache-for-mac/config"
+    return
+  fi
+
+  if [ -f "/Library/Application Support/memory-cache-for-mac/config" ]; then
+    printf '%s\n' "/Library/Application Support/memory-cache-for-mac/config"
+    return
+  fi
+
+  printf '%s\n' "$HOME/.config/memory-cache-for-mac/config"
+}
+
+load_config_from() {
+  config_path=$1
+
+  [ -f "$config_path" ] || fail "Missing config: $config_path. Re-run ./install.sh."
   unset BACKEND CACHE_SIZE TMPFS_MOUNT_PATH APFS_DISK_NAME APFS_MOUNT_PATH CREATE_DIRS
+  unset SERVICE_MODE TARGET_USER TARGET_HOME
   # shellcheck disable=SC1090
-  . "$CONFIG_PATH"
+  . "$config_path"
 
   require_config_var BACKEND
+  require_config_var SERVICE_MODE
   require_config_var CACHE_SIZE
+  require_config_var TARGET_USER
+  require_config_var TARGET_HOME
   require_config_var TMPFS_MOUNT_PATH
   require_config_var APFS_DISK_NAME
   require_config_var APFS_MOUNT_PATH
   require_config_var CREATE_DIRS
+
+  case "$SERVICE_MODE" in
+    agent|daemon) ;;
+    *) fail "Unsupported service mode: $SERVICE_MODE" ;;
+  esac
 
   case "$BACKEND" in
     tmpfs|apfs) ;;
@@ -112,11 +162,17 @@ load_config() {
   fi
 }
 
+load_config() {
+  CONFIG_PATH=$(resolve_default_config_path)
+  load_config_from "$CONFIG_PATH"
+}
+
 mount_tmpfs_backend() {
   command -v "$MOUNT_TMPFS_CMD" >/dev/null 2>&1 || fail "tmpfs backend requires mount_tmpfs"
 
   if is_mounted_at "$TMPFS_MOUNT_PATH"; then
     ensure_child_dirs "$TMPFS_MOUNT_PATH"
+    fix_tmpfs_ownership
     echo "Memory cache is already mounted at $TMPFS_MOUNT_PATH"
     return
   fi
@@ -128,6 +184,7 @@ mount_tmpfs_backend() {
   mkdir -p "$TMPFS_MOUNT_PATH"
   "$MOUNT_TMPFS_CMD" -i -s "$CACHE_SIZE" "$TMPFS_MOUNT_PATH" || fail "mount_tmpfs failed"
   ensure_child_dirs "$TMPFS_MOUNT_PATH"
+  fix_tmpfs_ownership
 }
 
 mount_apfs_backend() {
