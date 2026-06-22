@@ -55,7 +55,11 @@ assert_contains "$DAEMON_CONFIG" "TARGET_USER=saber"
 assert_contains "$DAEMON_CONFIG" "TARGET_HOME=$HOME_DIR"
 assert_contains "$DAEMON_CONFIG" "TMPFS_MOUNT_PATH=\"$HOME_DIR/tmpfs\""
 assert_file "$SANDBOX_ROOT/usr/local/libexec/create_memory_cache.sh"
-assert_file "$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+DAEMON_PLIST="$SANDBOX_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+assert_file "$DAEMON_PLIST"
+assert_contains "$DAEMON_PLIST" "/usr/local/libexec/create_memory_cache.sh"
+assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.log"
+assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.err.log"
 
 HOME_DIR=$(make_home)
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
@@ -71,7 +75,11 @@ assert_contains "$AGENT_CONFIG" "SERVICE_MODE=agent"
 assert_contains "$AGENT_CONFIG" "TARGET_HOME=$HOME_DIR"
 assert_contains "$AGENT_CONFIG" "APFS_MOUNT_PATH=\"/Volumes/\$APFS_DISK_NAME\""
 assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
-assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
+AGENT_PLIST="$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
+assert_file "$AGENT_PLIST"
+assert_contains "$AGENT_PLIST" "$HOME_DIR/.local/bin/create_memory_cache.sh"
+assert_contains "$AGENT_PLIST" "$HOME_DIR/Library/Logs/memory-cache.log"
+assert_contains "$AGENT_PLIST" "$HOME_DIR/Library/Logs/memory-cache.err.log"
 
 HOME_DIR=$(make_home)
 SANDBOX_ROOT=$(dirname "$HOME_DIR")
