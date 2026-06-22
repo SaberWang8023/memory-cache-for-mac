@@ -1,32 +1,77 @@
 # memory-cache-for-mac
 
-[English README](README.md)
+[README](README.md)
 
-一个小型 macOS LaunchAgent 配置，用于在登录时创建易失的内存缓存空间。
+这是这份项目的中文说明，内容与当前实现保持一致。
 
-当 `mount_tmpfs` 可用时，它默认使用 `tmpfs`；同时仍支持 APFS ramdisk backend，供需要真实 APFS 卷的用户选择。
+项目会在 macOS 上创建一个易失性的内存缓存，并根据 backend 选择不同的 service mode：
 
-## 使用场景
+| Backend | Service mode | 默认挂载路径 | 安装权限 |
+| --- | --- | --- | --- |
+| `tmpfs` | `LaunchDaemon` | `~/tmpfs` | 需要 root，使用 `sudo` 安装 |
+| `apfs` | `LaunchAgent` | `/Volumes/Ramdisk` | 用户级安装 |
+
+## 适用场景
 
 - 临时下载
-- Chrome 缓存
+- 浏览器缓存
 - 音乐应用缓存
-- 构建缓存或临时 scratch 缓存
+- 构建缓存和其他可丢弃的工作目录
 
-不要用它存放必须在注销、重启、卸载挂载点或安装变更后继续保留的文件。
+不要把必须跨注销、重启、卸载挂载点、eject 卷或重新安装后继续存在的数据放在这里。
 
-## Backends
+## 当前 backend 模型
 
-| Backend | 默认路径 | 适合场景 | 说明 |
-| --- | --- | --- | --- |
-| `tmpfs` | `~/tmpfs` | 可丢弃缓存目录 | `mount_tmpfs` 可用时默认选择 |
-| `apfs` | `/Volumes/Ramdisk` | 需要卷语义的 APFS ramdisk 用户 | 可选兼容 backend |
+### `tmpfs`
 
-运行脚本不会在 backend 之间静默回退。如果配置的 backend 失败，它会报错退出。
+- 安装命令：`sudo ./install.sh --backend tmpfs`
+- service mode：`LaunchDaemon`
+- 需要 root 的原因：会把脚本装到系统目录，并由 root 挂载 `tmpfs`
+- 默认挂载点：目标用户的 `~/tmpfs`
+- 安装文件路径：
+  - `/usr/local/libexec/create_memory_cache.sh`
+  - `/Library/LaunchDaemons/com.local.memory-cache.plist`
+  - `/Library/Application Support/memory-cache-for-mac/config`
+- 日志路径：
+  - `/Library/Logs/memory-cache.log`
+  - `/Library/Logs/memory-cache.err.log`
+
+### `apfs`
+
+- 安装命令：`./install.sh --backend apfs`
+- service mode：`LaunchAgent`
+- 安装级别：当前用户
+- 默认挂载点：`/Volumes/Ramdisk`
+- 安装文件路径：
+  - `~/.local/bin/create_memory_cache.sh`
+  - `~/Library/LaunchAgents/com.local.memory-cache.plist`
+  - `~/.config/memory-cache-for-mac/config`
+- 日志路径：
+  - `~/Library/Logs/memory-cache.log`
+  - `~/Library/Logs/memory-cache.err.log`
+
+## 切换 backend 时会发生什么
+
+从 `tmpfs` 切换到 `apfs`，或从 `apfs` 切换到 `tmpfs` 时，安装脚本会自动清理另一种 mode 的安装产物，包括：
+
+- plist
+- 安装脚本
+- 配置文件
+- 对应日志
+- 旧版 `com.local.ramdisk` 兼容文件
+
+它不会自动做这些事情：
+
+- 不会自动卸载 `~/tmpfs`
+- 不会自动删除 `~/tmpfs`
+- 不会自动 eject 现有 APFS 卷
+- 不会自动清空 `/Volumes/<APFS_DISK_NAME>` 里的内容
+
+运行时也不会在 backend 之间静默回退。选定 backend 失败时会直接报错退出。
 
 ## 容量
 
-安装器会根据物理内存推荐缓存容量：
+安装器会根据物理内存给出推荐值：
 
 | 物理内存 | 推荐容量 |
 | --- | --- |
@@ -34,7 +79,7 @@
 | `> 16 GB` 且 `<= 48 GB` | `1g` |
 | `> 48 GB` | `2g` |
 
-这只是推荐值。你可以在安装时选择其他容量，也可以之后编辑配置。
+你可以在安装时覆盖这个值，也可以之后直接改配置文件。
 
 ## 安装
 
@@ -44,26 +89,16 @@
 ./install.sh
 ```
 
-非交互示例：
+常见安装命令：
 
 ```sh
-./install.sh --backend tmpfs
+sudo ./install.sh --backend tmpfs
 ./install.sh --backend apfs
 ./install.sh --size 1g
-./install.sh --backend tmpfs --size 512m
+sudo ./install.sh --backend tmpfs --size 512m
 ```
 
-安装文件：
-
-```text
-~/.local/bin/create_memory_cache.sh
-~/Library/LaunchAgents/com.local.memory-cache.plist
-~/Library/Logs/memory-cache.log
-~/Library/Logs/memory-cache.err.log
-~/.config/memory-cache-for-mac/config
-```
-
-缓存根目录下默认创建：
+挂载完成后，缓存根目录下默认会创建：
 
 ```text
 Downloads
@@ -73,13 +108,12 @@ Cache/Music
 
 ## 配置
 
-编辑：
+两种 mode 的配置文件路径不同：
 
-```text
-~/.config/memory-cache-for-mac/config
-```
+- `tmpfs`：`/Library/Application Support/memory-cache-for-mac/config`
+- `apfs`：`~/.config/memory-cache-for-mac/config`
 
-示例：
+配置示例：
 
 ```sh
 BACKEND=tmpfs
@@ -90,13 +124,18 @@ APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
 CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
 ```
 
-`TMPFS_MOUNT_PATH` 可以自定义。对于 APFS backend，`APFS_MOUNT_PATH` 必须保持为 `/Volumes/$APFS_DISK_NAME`。如果要修改 APFS 默认挂载位置，只支持通过修改 `APFS_DISK_NAME` 来改变派生出的 `/Volumes/<name>`，不支持任意 APFS mount path。
+约束如下：
 
-## 从 ramdisk-for-mac 迁移
+- `TMPFS_MOUNT_PATH` 可以改。
+- `APFS_MOUNT_PATH` 必须等于 `/Volumes/$APFS_DISK_NAME`。
+- 如果要改 APFS 卷名，请修改 `APFS_DISK_NAME`。
+- 不支持把 APFS backend 绑定到任意自定义路径。
 
-安装这个版本会停止并移除旧的 `com.local.ramdisk` LaunchAgent 和 `~/.local/bin/create_ram_disk.sh`。
+## 迁移说明
 
-它不会弹出已有的 `/Volumes/Ramdisk` 卷。确认内容后，如需手动移除：
+如果你之前用的是旧版 `ramdisk-for-mac`，安装当前版本时会停止并删除旧的 `com.local.ramdisk` 与 `create_ram_disk.sh`。
+
+已有 `/Volumes/Ramdisk` 不会被自动 eject；确认无用后可手动执行：
 
 ```sh
 diskutil eject /Volumes/Ramdisk
@@ -108,7 +147,9 @@ diskutil eject /Volumes/Ramdisk
 ./uninstall.sh
 ```
 
-卸载会移除安装文件和配置，但不会卸载或删除缓存根目录。手动清理：
+卸载会移除 agent 和 daemon 两种模式的安装文件、配置文件与日志，但不会自动卸载挂载点，也不会自动 eject 卷。
+
+需要时手动执行：
 
 ```sh
 umount ~/tmpfs
