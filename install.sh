@@ -16,20 +16,19 @@ SKIP_LAUNCHCTL="${MEMORY_CACHE_SKIP_LAUNCHCTL:-0}"
 BACKEND_ARG=""
 SIZE_ARG=""
 
-SYSTEM_ROOT="${MEMORY_CACHE_TEST_SYSTEM_ROOT:-}"
-if [ -z "$SYSTEM_ROOT" ]; then
-  SYSTEM_ROOT="/"
-fi
-
 SERVICE_MODE=""
 TARGET_USER=""
 TARGET_HOME=""
+TARGET_UID=""
+SYSTEM_ROOT=""
 INSTALL_SCRIPT=""
 PLIST_PATH=""
 PLIST_TEMPLATE=""
 CONFIG_DIR=""
 CONFIG_PATH=""
 LOG_DIR=""
+LOG_PATH=""
+ERR_LOG_PATH=""
 OLD_SCRIPT=""
 OLD_PLIST=""
 
@@ -112,12 +111,11 @@ resolve_target_user() {
   fi
 
   if [ "$(effective_uid)" -eq 0 ]; then
-    if [ -n "${SUDO_USER:-}" ]; then
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
       printf '%s\n' "$SUDO_USER"
       return
     fi
-    stat -f '%Su' /dev/console
-    return
+    return 1
   fi
 
   id -un
@@ -133,6 +131,14 @@ resolve_target_home() {
     dscl . -read "/Users/$1" NFSHomeDirectory 2>/dev/null | awk '{print $2}'
   else
     printf '%s\n' "$HOME"
+  fi
+}
+
+resolve_system_root() {
+  if [ -n "${MEMORY_CACHE_TEST_SYSTEM_ROOT:-}" ]; then
+    printf '%s\n' "$MEMORY_CACHE_TEST_SYSTEM_ROOT"
+  else
+    printf '%s\n' "/"
   fi
 }
 
@@ -155,6 +161,8 @@ set_paths_for_mode() {
       CONFIG_DIR="$TARGET_HOME/.config/memory-cache-for-mac"
       CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$TARGET_HOME/Library/Logs"
+      LOG_PATH="$LOG_DIR/memory-cache.log"
+      ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
       OLD_SCRIPT="$TARGET_HOME/.local/bin/create_ram_disk.sh"
       OLD_PLIST="$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist"
       ;;
@@ -165,6 +173,8 @@ set_paths_for_mode() {
       CONFIG_DIR="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac"
       CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$SYSTEM_ROOT/Library/Logs"
+      LOG_PATH="$LOG_DIR/memory-cache.log"
+      ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
       OLD_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
       OLD_PLIST="$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist"
       ;;
@@ -269,6 +279,20 @@ bootout_daemon_if_present() {
   fi
 }
 
+cleanup_current_mode_legacy() {
+  if [ "$SERVICE_MODE" = "agent" ]; then
+    if [ "$SKIP_LAUNCHCTL" != "1" ]; then
+      launchctl bootout "gui/$TARGET_UID" "$OLD_PLIST" >/dev/null 2>&1 || true
+    fi
+  else
+    if [ "$SKIP_LAUNCHCTL" != "1" ]; then
+      launchctl bootout system "$OLD_PLIST" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  rm -f "$OLD_PLIST" "$OLD_SCRIPT"
+}
+
 cleanup_opposite_mode() {
   case "$SERVICE_MODE" in
     agent)
@@ -276,6 +300,9 @@ cleanup_opposite_mode() {
       rm -f \
         "$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist" \
         "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" \
+        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
+        "$SYSTEM_ROOT/Library/Logs/memory-cache.log" \
+        "$SYSTEM_ROOT/Library/Logs/memory-cache.err.log" \
         "$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist" \
         "$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
       ;;
@@ -284,6 +311,9 @@ cleanup_opposite_mode() {
       rm -f \
         "$TARGET_HOME/Library/LaunchAgents/$LABEL.plist" \
         "$TARGET_HOME/.local/bin/create_memory_cache.sh" \
+        "$TARGET_HOME/.config/memory-cache-for-mac/config" \
+        "$TARGET_HOME/Library/Logs/memory-cache.log" \
+        "$TARGET_HOME/Library/Logs/memory-cache.err.log" \
         "$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist" \
         "$TARGET_HOME/.local/bin/create_ram_disk.sh"
       ;;
@@ -341,7 +371,11 @@ load_service() {
       user_uid=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
       launchctl bootout "gui/$user_uid" "$PLIST_PATH" >/dev/null 2>&1 || true
       if ! launchctl bootstrap "gui/$user_uid" "$PLIST_PATH" 2>/dev/null; then
-        echo "launchctl bootstrap failed as the current user; retrying with sudo..."
+        if [ "$(effective_uid)" -eq 0 ]; then
+          echo "launchctl bootstrap failed for gui/$user_uid" >&2
+          exit 1
+        fi
+        echo "launchctl bootstrap failed for gui/$user_uid; retrying with sudo..." >&2
         sudo launchctl bootstrap "gui/$user_uid" "$PLIST_PATH"
       fi
       launchctl kickstart -k "gui/$user_uid/$LABEL" >/dev/null 2>&1 || true
@@ -360,18 +394,24 @@ recommended_size=$(recommend_size)
 backend=$(choose_backend "$recommended_backend")
 cache_size=$(choose_size "$recommended_size")
 SERVICE_MODE=$(service_mode_for_backend "$backend")
+SYSTEM_ROOT=$(resolve_system_root)
 
 if [ "$SERVICE_MODE" = "daemon" ] && [ "$(effective_uid)" -ne 0 ]; then
   echo "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" >&2
   exit 1
 fi
 
-TARGET_USER=$(resolve_target_user)
+TARGET_USER=$(resolve_target_user) || {
+  echo "Could not determine target user; rerun with sudo from a user session or set SUDO_USER" >&2
+  exit 1
+}
 TARGET_HOME=$(resolve_target_home "$TARGET_USER")
 [ -n "$TARGET_HOME" ] || { echo "Could not resolve target home for $TARGET_USER" >&2; exit 1; }
+TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
 
 set_paths_for_mode "$SERVICE_MODE"
 cleanup_opposite_mode
+cleanup_current_mode_legacy
 install_files
 write_config "$backend" "$cache_size"
 load_service
@@ -385,4 +425,4 @@ echo "Target home: $TARGET_HOME"
 echo "Config: $CONFIG_PATH"
 echo "Script: $INSTALL_SCRIPT"
 echo "Plist: $PLIST_PATH"
-echo "Logs: $LOG_DIR/memory-cache.log and $LOG_DIR/memory-cache.err.log"
+echo "Logs: $LOG_PATH and $ERR_LOG_PATH"
