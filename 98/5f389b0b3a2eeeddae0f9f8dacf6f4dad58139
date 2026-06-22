@@ -1,0 +1,23 @@
+src/create_memory_cache.sh
+  s_6932e316a582a9::t_c64cd91df8f08b 41-49,140
+tests/runtime_test.sh
+  s_6932e316a582a9::t_05caf8e3d2b696 86-88,508-553,555-556
+  s_6932e316a582a9::t_cea7217931c5ab 554
+  s_6932e316a582a9::t_05e2a8401019ca 82-85,89-119,507,655-656
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "985f389b0b3a2eeeddae0f9f8dacf6f4dad58139",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
