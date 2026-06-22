@@ -1,0 +1,23 @@
+src/create_memory_cache.sh
+  s_6932e316a582a9::t_26439b212d48da 13,19,70-89,108-130,132,134,137,139-140,146-150,165-169,175,187
+tests/runtime_test.sh
+  s_6932e316a582a9::t_0ab8c0b39e8cba 345-353,372-373
+  s_6932e316a582a9::t_87b8c5ea59e50e 68,70-86,88,379-514
+  s_6932e316a582a9::t_72d805cb0c0112 30,32-33,49,51-52,87,89-90,107,109-110,124,126-127,143,145-146,164,166-167,225,227-228,276,278-279,330,332-333,521,523-524
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "20827b573091354ef5a33dc3ec4f7d9484be011d",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
