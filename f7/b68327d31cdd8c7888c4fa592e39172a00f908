@@ -1,0 +1,19 @@
+tests/install_test.sh
+  s_6932e316a582a9::t_ef749b620769c8 52,69,93-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "f7b68327d31cdd8c7888c4fa592e39172a00f908",
+  "prompts": {},
+  "sessions": {
+    "s_6932e316a582a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eef8c-5e63-7f21-bb0e-510a0a464be8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zongchun <zongchun@tsign.cn>"
+    }
+  }
+}
