@@ -245,6 +245,15 @@ choose_backend() {
   fi
 }
 
+ensure_backend_prerequisites() {
+  backend=$1
+
+  if [ "$backend" = "tmpfs" ] && ! has_tmpfs; then
+    echo "tmpfs backend requires mount_tmpfs" >&2
+    exit 1
+  fi
+}
+
 choose_size() {
   recommended=$1
   if [ -n "$SIZE_ARG" ]; then
@@ -263,6 +272,10 @@ choose_size() {
   else
     printf '%s\n' "$recommended"
   fi
+}
+
+remove_files_if_present() {
+  rm -f "$@"
 }
 
 bootout_agent_if_present() {
@@ -290,14 +303,14 @@ cleanup_current_mode_legacy() {
     fi
   fi
 
-  rm -f "$OLD_PLIST" "$OLD_SCRIPT"
+  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT"
 }
 
 cleanup_opposite_mode() {
   case "$SERVICE_MODE" in
     agent)
       bootout_daemon_if_present
-      rm -f \
+      remove_files_if_present \
         "$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist" \
         "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" \
         "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
@@ -308,7 +321,7 @@ cleanup_opposite_mode() {
       ;;
     daemon)
       bootout_agent_if_present
-      rm -f \
+      remove_files_if_present \
         "$TARGET_HOME/Library/LaunchAgents/$LABEL.plist" \
         "$TARGET_HOME/.local/bin/create_memory_cache.sh" \
         "$TARGET_HOME/.config/memory-cache-for-mac/config" \
@@ -318,6 +331,31 @@ cleanup_opposite_mode() {
         "$TARGET_HOME/.local/bin/create_ram_disk.sh"
       ;;
   esac
+}
+
+validate_target_context() {
+  if [ "$TARGET_USER" = "root" ]; then
+    echo "Target user must not be root" >&2
+    exit 1
+  fi
+
+  if [ -z "$TARGET_HOME" ]; then
+    echo "Target home must not be empty" >&2
+    exit 1
+  fi
+
+  if [ "$(effective_uid)" -eq 0 ]; then
+    case "$TARGET_HOME" in
+      /Users/*) ;;
+      *)
+        if [ -n "${MEMORY_CACHE_TEST_TARGET_HOME:-}" ]; then
+          return
+        fi
+        echo "Target home must be under /Users: $TARGET_HOME" >&2
+        exit 1
+        ;;
+    esac
+  fi
 }
 
 write_config() {
@@ -393,6 +431,7 @@ recommended_backend=$(recommend_backend)
 recommended_size=$(recommend_size)
 backend=$(choose_backend "$recommended_backend")
 cache_size=$(choose_size "$recommended_size")
+ensure_backend_prerequisites "$backend"
 SERVICE_MODE=$(service_mode_for_backend "$backend")
 SYSTEM_ROOT=$(resolve_system_root)
 
@@ -408,6 +447,7 @@ TARGET_USER=$(resolve_target_user) || {
 TARGET_HOME=$(resolve_target_home "$TARGET_USER")
 [ -n "$TARGET_HOME" ] || { echo "Could not resolve target home for $TARGET_USER" >&2; exit 1; }
 TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
+validate_target_context
 
 set_paths_for_mode "$SERVICE_MODE"
 cleanup_opposite_mode
