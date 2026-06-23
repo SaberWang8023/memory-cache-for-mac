@@ -22,9 +22,9 @@
 
 ## Backend 与 service mode
 
-`tmpfs` backend 会安装为 `LaunchDaemon`。脚本和配置写入系统路径，运行时以 root 挂载 `tmpfs`，再把目录所有权修正给目标用户，所以安装时必须使用 `sudo`。
+`tmpfs` backend 会安装为 `LaunchDaemon`。脚本和 `plist` 写入系统路径，运行时以 root 挂载 `tmpfs`，再把目录所有权修正给目标用户，所以安装时必须使用 `sudo`。
 
-`apfs` backend 会安装为 `LaunchAgent`。脚本和配置只写入当前用户目录，挂载点固定为 `/Volumes/<APFS_DISK_NAME>`，默认就是 `/Volumes/Ramdisk`。
+`apfs` backend 会安装为 `LaunchAgent`。脚本和 `plist` 只写入当前用户目录，挂载点固定为 `/Volumes/<APFS_DISK_NAME>`，默认就是 `/Volumes/Ramdisk`。
 
 安装脚本不会在 backend 之间静默回退。如果选定的 backend 无法工作，运行时会直接报错退出。
 
