@@ -1,0 +1,33 @@
+tests/uninstall_test.sh
+  s_db81b80397ed0c::t_8f1674d32155b0 46,57,74,106,114,134,142,167-168,185-186,199,206,224,247,249,264-265,287,294,297,327,335,341
+install.sh
+  s_db81b80397ed0c::t_e4b1c074f40201 190,196,201,207,322
+tests/install_test.sh
+  s_db81b80397ed0c::t_d13c4d9e5c065f 194,198-199,209-211
+src/com.local.memory-cache.daemon.plist.template
+  s_db81b80397ed0c::t_e4b1c074f40201 9
+uninstall.sh
+  s_db81b80397ed0c::t_e4b1c074f40201 26-27,135-136,146,158,238,246
+src/com.local.memory-cache.agent.plist.template
+  s_db81b80397ed0c::t_e4b1c074f40201 8
+docs/superpowers/specs/2026-06-23-isolated-backend-runtime-design.md
+  s_db81b80397ed0c::t_adec7e576d816b 134,138,149,153,210,214,225,229
+README.md
+  s_db81b80397ed0c::t_adec7e576d816b 70,81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "bd1a18b738fd12fe189a426015119af83bddd807",
+  "prompts": {},
+  "sessions": {
+    "s_db81b80397ed0c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef341-6ac4-7a73-8ca5-7b8f6dab8de5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
