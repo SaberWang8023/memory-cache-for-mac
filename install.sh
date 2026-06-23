@@ -149,7 +149,27 @@ service_mode_for_backend() {
 }
 
 quote_shell_value() {
-  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+  value=$1
+  printf "%s" "'"
+
+  while :; do
+    case "$value" in
+      *"'"*)
+        prefix=${value%%"'"*}
+        printf '%s' "$prefix"
+        printf "%s" "'"
+        printf "%s" "\\"
+        printf "%s" "'"
+        printf "%s" "'"
+        value=${value#*"'"}
+        ;;
+      *)
+        printf '%s' "$value"
+        printf "%s\n" "'"
+        return
+        ;;
+    esac
+  done
 }
 
 set_paths_for_mode() {

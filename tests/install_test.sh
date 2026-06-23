@@ -78,6 +78,42 @@ assert_contains "$DAEMON_PLIST" "/usr/local/libexec/create_memory_cache.sh"
 assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.log"
 assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.err.log"
 
+QUOTE_SNIPPET=$(mktemp "${TMPDIR:-/tmp}/memory-cache-quote.XXXXXX")
+sed -n '/^quote_shell_value() {$/,/^}$/p' "$ROOT/install.sh" > "$QUOTE_SNIPPET"
+. "$QUOTE_SNIPPET"
+quoted_value=$(
+  sed() {
+    fail "quote_shell_value unexpectedly invoked sed"
+  }
+  quote_shell_value "saber'qa"
+)
+[ "$quoted_value" = "'saber'\\''qa'" ] || fail "quote_shell_value returned unexpected literal: $quoted_value"
+
+SANDBOX_ROOT=$(make_sandbox_root)
+HOME_DIR="$SANDBOX_ROOT/home with ' quote"
+SYSTEM_ROOT="$SANDBOX_ROOT/system"
+mkdir -p "$HOME_DIR" "$SYSTEM_ROOT"
+MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
+MEMORY_CACHE_TEST_MEMSIZE_BYTES=25769803776 \
+MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
+MEMORY_CACHE_TEST_TARGET_USER="saber'qa" \
+MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR" \
+MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
+HOME="$HOME_DIR" \
+  "$ROOT/install.sh" --backend tmpfs --size 2g >/tmp/memory-cache-install-daemon-quoted.out
+
+QUOTED_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+assert_file "$QUOTED_SCRIPT"
+QUOTED_CONSTS=$(mktemp "${TMPDIR:-/tmp}/memory-cache-install-quoted.XXXXXX")
+sed -n '3,8p' "$QUOTED_SCRIPT" > "$QUOTED_CONSTS"
+unset BACKEND CACHE_SIZE SERVICE_MODE TARGET_USER TARGET_HOME
+. "$QUOTED_CONSTS"
+[ "$BACKEND" = "tmpfs" ] || fail "quoted BACKEND did not round-trip"
+[ "$CACHE_SIZE" = "2g" ] || fail "quoted CACHE_SIZE did not round-trip"
+[ "$SERVICE_MODE" = "daemon" ] || fail "quoted SERVICE_MODE did not round-trip"
+[ "$TARGET_USER" = "saber'qa" ] || fail "quoted TARGET_USER did not round-trip"
+[ "$TARGET_HOME" = "$HOME_DIR" ] || fail "quoted TARGET_HOME did not round-trip"
+
 HOME_DIR=$(make_home)
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_MEMSIZE_BYTES=17179869184 \
