@@ -430,15 +430,16 @@ parse_args "$@"
 recommended_backend=$(recommend_backend)
 recommended_size=$(recommend_size)
 backend=$(choose_backend "$recommended_backend")
-cache_size=$(choose_size "$recommended_size")
-ensure_backend_prerequisites "$backend"
 SERVICE_MODE=$(service_mode_for_backend "$backend")
-SYSTEM_ROOT=$(resolve_system_root)
 
 if [ "$SERVICE_MODE" = "daemon" ] && [ "$(effective_uid)" -ne 0 ]; then
   echo "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" >&2
   exit 1
 fi
+
+cache_size=$(choose_size "$recommended_size")
+ensure_backend_prerequisites "$backend"
+SYSTEM_ROOT=$(resolve_system_root)
 
 TARGET_USER=$(resolve_target_user) || {
   echo "Could not determine target user; rerun with sudo from a user session or set SUDO_USER" >&2

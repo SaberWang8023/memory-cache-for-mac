@@ -40,6 +40,16 @@ fi
 grep -Fq "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" \
   /tmp/memory-cache-install-tmpfs-no-root.out || fail "missing tmpfs sudo error"
 
+HOME_DIR=$(make_home)
+if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend tmpfs --size banana >/tmp/memory-cache-install-tmpfs-sudo-before-size.out 2>&1; then
+  fail "tmpfs install without root and invalid size unexpectedly succeeded"
+fi
+grep -Fq "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" \
+  /tmp/memory-cache-install-tmpfs-sudo-before-size.out || fail "tmpfs did not ask for sudo before checking size"
+if grep -Fq "Unsupported cache size" /tmp/memory-cache-install-tmpfs-sudo-before-size.out; then
+  fail "tmpfs checked size before asking for sudo"
+fi
+
 SANDBOX_ROOT=$(make_sandbox_root)
 HOME_DIR="$SANDBOX_ROOT/home"
 SYSTEM_ROOT="$SANDBOX_ROOT/system"
@@ -114,7 +124,7 @@ fi
 grep -Fq "Unsupported backend" /tmp/memory-cache-install-bad-backend.out || fail "missing invalid backend error"
 
 HOME_DIR=$(make_home)
-if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --size banana >/tmp/memory-cache-install-bad-size.out 2>&1; then
+if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend apfs --size banana >/tmp/memory-cache-install-bad-size.out 2>&1; then
   fail "invalid size unexpectedly succeeded"
 fi
 grep -Fq "Unsupported cache size" /tmp/memory-cache-install-bad-size.out || fail "missing invalid size error"
