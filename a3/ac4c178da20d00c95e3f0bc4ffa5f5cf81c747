@@ -1,0 +1,23 @@
+src/create_apfs_cache.sh
+  s_41894bcb55945d::t_e58bf86e420c26 85,99,125-126
+tests/runtime_test.sh
+  s_41894bcb55945d::t_017231c53b6d8c 6-7,14-21,28,30-32,34,41,46-58,60-66,69-70,72,75-76,78,81-86,88,91-94,96,98,100-101,103,105,107-108,110,114,118-121,123-124,126-132,135-171,217-218,262-263
+src/create_tmpfs_cache.sh
+  s_41894bcb55945d::t_fd1a7aefd2fa32 1-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "a3ac4c178da20d00c95e3f0bc4ffa5f5cf81c747",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
