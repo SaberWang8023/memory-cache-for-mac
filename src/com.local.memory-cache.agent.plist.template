@@ -5,7 +5,7 @@
 	<key>Label</key>
 	<string>com.local.memory-cache</string>
 	<key>Program</key>
-	<string>__HOME__/.local/bin/create_memory_cache.sh</string>
+	<string>__HOME__/.local/bin/create_apfs_cache.sh</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardOutPath</key>

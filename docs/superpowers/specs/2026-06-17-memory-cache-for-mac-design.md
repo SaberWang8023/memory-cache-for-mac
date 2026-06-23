@@ -180,7 +180,7 @@ mount_tmpfs -i -s "$CACHE_SIZE" "$TMPFS_MOUNT_PATH"
 - 打印手动清理提示，例如：
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```
 

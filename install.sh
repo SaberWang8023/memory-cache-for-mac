@@ -8,7 +8,9 @@ export PATH
 LABEL="com.local.memory-cache"
 OLD_LABEL="com.local.ramdisk"
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-SOURCE_SCRIPT="$SCRIPT_DIR/src/create_memory_cache.sh"
+TMPFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_tmpfs_cache.sh"
+APFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_apfs_cache.sh"
+SOURCE_SCRIPT=""
 AGENT_PLIST_TEMPLATE="$SCRIPT_DIR/src/$LABEL.agent.plist.template"
 DAEMON_PLIST_TEMPLATE="$SCRIPT_DIR/src/$LABEL.daemon.plist.template"
 SKIP_LAUNCHCTL="${MEMORY_CACHE_SKIP_LAUNCHCTL:-0}"
@@ -24,8 +26,6 @@ SYSTEM_ROOT=""
 INSTALL_SCRIPT=""
 PLIST_PATH=""
 PLIST_TEMPLATE=""
-CONFIG_DIR=""
-CONFIG_PATH=""
 LOG_DIR=""
 LOG_PATH=""
 ERR_LOG_PATH=""
@@ -96,6 +96,14 @@ validate_backend() {
   esac
 }
 
+source_script_for_backend() {
+  case "$1" in
+    tmpfs) printf '%s\n' "$TMPFS_SOURCE_SCRIPT" ;;
+    apfs) printf '%s\n' "$APFS_SOURCE_SCRIPT" ;;
+    *) return 1 ;;
+  esac
+}
+
 effective_uid() {
   if [ -n "${MEMORY_CACHE_TEST_EFFECTIVE_UID:-}" ]; then
     printf '%s\n' "$MEMORY_CACHE_TEST_EFFECTIVE_UID"
@@ -150,31 +158,53 @@ service_mode_for_backend() {
   esac
 }
 
+quote_shell_value() {
+  value=$1
+  printf "%s" "'"
+
+  while :; do
+    case "$value" in
+      *"'"*)
+        prefix=${value%%"'"*}
+        printf '%s' "$prefix"
+        printf "%s" "'"
+        printf "%s" "\\"
+        printf "%s" "'"
+        printf "%s" "'"
+        value=${value#*"'"}
+        ;;
+      *)
+        printf '%s' "$value"
+        printf "%s\n" "'"
+        return
+        ;;
+    esac
+  done
+}
+
 set_paths_for_mode() {
   service_mode=$1
 
   case "$service_mode" in
     agent)
-      INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
+      INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_apfs_cache.sh"
       PLIST_PATH="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
       PLIST_TEMPLATE="$AGENT_PLIST_TEMPLATE"
-      CONFIG_DIR="$TARGET_HOME/.config/memory-cache-for-mac"
-      CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$TARGET_HOME/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
+      OLD_MEMORY_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
       OLD_SCRIPT="$TARGET_HOME/.local/bin/create_ram_disk.sh"
       OLD_PLIST="$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist"
       ;;
     daemon)
-      INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+      INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
       PLIST_PATH="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
       PLIST_TEMPLATE="$DAEMON_PLIST_TEMPLATE"
-      CONFIG_DIR="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac"
-      CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$SYSTEM_ROOT/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
+      OLD_MEMORY_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
       OLD_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
       OLD_PLIST="$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist"
       ;;
@@ -278,20 +308,6 @@ remove_files_if_present() {
   rm -f "$@"
 }
 
-bootout_agent_if_present() {
-  agent_plist="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
-  if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-    launchctl bootout "gui/$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)" "$agent_plist" >/dev/null 2>&1 || true
-  fi
-}
-
-bootout_daemon_if_present() {
-  daemon_plist="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
-  if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-    launchctl bootout system "$daemon_plist" >/dev/null 2>&1 || true
-  fi
-}
-
 cleanup_current_mode_legacy() {
   if [ "$SERVICE_MODE" = "agent" ]; then
     if [ "$SKIP_LAUNCHCTL" != "1" ]; then
@@ -303,32 +319,16 @@ cleanup_current_mode_legacy() {
     fi
   fi
 
-  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT"
+  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT" "$OLD_MEMORY_SCRIPT"
 }
 
-cleanup_opposite_mode() {
+cleanup_legacy_config_for_mode() {
   case "$SERVICE_MODE" in
     agent)
-      bootout_daemon_if_present
-      remove_files_if_present \
-        "$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist" \
-        "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" \
-        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
-        "$SYSTEM_ROOT/Library/Logs/memory-cache.log" \
-        "$SYSTEM_ROOT/Library/Logs/memory-cache.err.log" \
-        "$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist" \
-        "$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
+      remove_files_if_present "$TARGET_HOME/.config/memory-cache-for-mac/config"
       ;;
     daemon)
-      bootout_agent_if_present
-      remove_files_if_present \
-        "$TARGET_HOME/Library/LaunchAgents/$LABEL.plist" \
-        "$TARGET_HOME/.local/bin/create_memory_cache.sh" \
-        "$TARGET_HOME/.config/memory-cache-for-mac/config" \
-        "$TARGET_HOME/Library/Logs/memory-cache.log" \
-        "$TARGET_HOME/Library/Logs/memory-cache.err.log" \
-        "$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist" \
-        "$TARGET_HOME/.local/bin/create_ram_disk.sh"
+      remove_files_if_present "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
       ;;
   esac
 }
@@ -358,23 +358,23 @@ validate_target_context() {
   fi
 }
 
-write_config() {
-  backend=$1
-  cache_size=$2
-
-  mkdir -p "$CONFIG_DIR"
-  cat > "$CONFIG_PATH" <<EOF_CONFIG
-BACKEND=$backend
-CACHE_SIZE=$cache_size
-SERVICE_MODE=$SERVICE_MODE
-TARGET_USER=$TARGET_USER
-TARGET_HOME=$TARGET_HOME
-TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-  chmod 644 "$CONFIG_PATH"
+install_runtime_script() {
+  {
+    sed -n '1p' "$SOURCE_SCRIPT"
+    printf '\n'
+    printf '%s\n' "# 由 install.sh 安装。修改这些值请重新运行 install.sh。"
+    printf '%s\n' "MEMORY_CACHE_INSTALLED='1'"
+    printf 'BACKEND=%s\n' "$(quote_shell_value "$backend")"
+    printf 'CACHE_SIZE=%s\n' "$(quote_shell_value "$cache_size")"
+    printf 'SERVICE_MODE=%s\n' "$(quote_shell_value "$SERVICE_MODE")"
+    if [ "$backend" = "tmpfs" ]; then
+      printf 'TARGET_USER=%s\n' "$(quote_shell_value "$TARGET_USER")"
+      printf 'TARGET_HOME=%s\n' "$(quote_shell_value "$TARGET_HOME")"
+    fi
+    printf '\n'
+    sed '1d;/^MEMORY_CACHE_INSTALLED=0$/d' "$SOURCE_SCRIPT"
+  } > "$INSTALL_SCRIPT"
+  chmod 755 "$INSTALL_SCRIPT"
 }
 
 install_files() {
@@ -384,14 +384,12 @@ install_files() {
   case "$SERVICE_MODE" in
     agent)
       mkdir -p "$TARGET_HOME/.local/bin" "$TARGET_HOME/Library/LaunchAgents" "$LOG_DIR"
-      cp "$SOURCE_SCRIPT" "$INSTALL_SCRIPT"
-      chmod 755 "$INSTALL_SCRIPT"
+      install_runtime_script
       sed "s#__HOME__#$TARGET_HOME#g" "$PLIST_TEMPLATE" > "$PLIST_PATH"
       ;;
     daemon)
       mkdir -p "$(dirname "$INSTALL_SCRIPT")" "$(dirname "$PLIST_PATH")" "$LOG_DIR"
-      cp "$SOURCE_SCRIPT" "$INSTALL_SCRIPT"
-      chmod 755 "$INSTALL_SCRIPT"
+      install_runtime_script
       cp "$PLIST_TEMPLATE" "$PLIST_PATH"
       ;;
   esac
@@ -430,15 +428,17 @@ parse_args "$@"
 recommended_backend=$(recommend_backend)
 recommended_size=$(recommend_size)
 backend=$(choose_backend "$recommended_backend")
-cache_size=$(choose_size "$recommended_size")
-ensure_backend_prerequisites "$backend"
+SOURCE_SCRIPT=$(source_script_for_backend "$backend")
 SERVICE_MODE=$(service_mode_for_backend "$backend")
-SYSTEM_ROOT=$(resolve_system_root)
 
 if [ "$SERVICE_MODE" = "daemon" ] && [ "$(effective_uid)" -ne 0 ]; then
   echo "tmpfs backend requires sudo because it installs a LaunchDaemon and mounts tmpfs as root" >&2
   exit 1
 fi
+
+cache_size=$(choose_size "$recommended_size")
+ensure_backend_prerequisites "$backend"
+SYSTEM_ROOT=$(resolve_system_root)
 
 TARGET_USER=$(resolve_target_user) || {
   echo "Could not determine target user; rerun with sudo from a user session or set SUDO_USER" >&2
@@ -450,10 +450,9 @@ TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
 validate_target_context
 
 set_paths_for_mode "$SERVICE_MODE"
-cleanup_opposite_mode
 cleanup_current_mode_legacy
+cleanup_legacy_config_for_mode
 install_files
-write_config "$backend" "$cache_size"
 load_service
 
 echo "Installed $LABEL"
@@ -462,7 +461,6 @@ echo "Cache size: $cache_size"
 echo "Service mode: $SERVICE_MODE"
 echo "Target user: $TARGET_USER"
 echo "Target home: $TARGET_HOME"
-echo "Config: $CONFIG_PATH"
 echo "Script: $INSTALL_SCRIPT"
 echo "Plist: $PLIST_PATH"
 echo "Logs: $LOG_PATH and $ERR_LOG_PATH"

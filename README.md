@@ -1,7 +1,5 @@
 # memory-cache-for-mac
 
-[中文补充说明](README.zh-CN.md)
-
 一个用于 macOS 的易失性内存缓存安装脚本，会按照 backend 选择不同的 service mode，在登录后自动准备缓存目录或卷。
 
 当前实现只有两种受支持的组合：
@@ -22,21 +20,20 @@
 
 ## Backend 与 service mode
 
-`tmpfs` backend 会安装为 `LaunchDaemon`。脚本和配置写入系统路径，运行时以 root 挂载 `tmpfs`，再把目录所有权修正给目标用户，所以安装时必须使用 `sudo`。
+`tmpfs` backend 会安装为 `LaunchDaemon`。脚本和 `plist` 写入系统路径，运行时以 root 挂载 `tmpfs`，再把目录所有权修正给目标用户，所以安装时必须使用 `sudo`。
 
-`apfs` backend 会安装为 `LaunchAgent`。脚本和配置只写入当前用户目录，挂载点固定为 `/Volumes/<APFS_DISK_NAME>`，默认就是 `/Volumes/Ramdisk`。
+`apfs` backend 会安装为 `LaunchAgent`。脚本和 `plist` 只写入当前用户目录，挂载点固定为 `/Volumes/<APFS_DISK_NAME>`，默认就是 `/Volumes/Ramdisk`。
 
 安装脚本不会在 backend 之间静默回退。如果选定的 backend 无法工作，运行时会直接报错退出。
 
-当你从一种 backend 切换到另一种 backend 时，安装脚本会自动停止并清理另一种 service mode 的安装产物，包括：
+`tmpfs` 和 `apfs` 可以同时安装。默认安装仍只安装推荐 backend；如果想同时使用两者，可以分别执行：
 
-- plist
-- 安装脚本
-- 配置文件
-- 对应日志文件
-- 旧版 `com.local.ramdisk` 兼容产物
+```sh
+sudo ./install.sh --backend tmpfs
+./install.sh --backend apfs
+```
 
-它不会自动卸载 `~/tmpfs`，也不会自动 eject 现有的 APFS 卷。
+重复安装同一个 backend 会覆盖该 backend 的脚本和 plist，但不会删除另一个 backend，也不会自动重建已经挂载的 tmpfs 或 APFS ramdisk。修改 `--size` 后，如果对应 backend 已经挂载，需要手动清理挂载点并重启 service 才会立即使用新容量。
 
 ## 容量建议
 
@@ -48,7 +45,7 @@
 | `> 16 GB` 且 `<= 48 GB` | `1g` |
 | `> 48 GB` | `2g` |
 
-这只是默认值。你可以在安装时改成别的容量，后续也可以手动编辑配置。
+这只是默认值。你可以在安装时改成别的容量。
 
 ## 安装
 
@@ -70,9 +67,8 @@ sudo ./install.sh --backend tmpfs --size 512m
 ### `tmpfs` 安装产物
 
 ```text
-/usr/local/libexec/create_memory_cache.sh
+/usr/local/libexec/create_tmpfs_cache.sh
 /Library/LaunchDaemons/com.local.memory-cache.plist
-/Library/Application Support/memory-cache-for-mac/config
 /Library/Logs/memory-cache.log
 /Library/Logs/memory-cache.err.log
 ```
@@ -82,9 +78,8 @@ sudo ./install.sh --backend tmpfs --size 512m
 ### `apfs` 安装产物
 
 ```text
-~/.local/bin/create_memory_cache.sh
+~/.local/bin/create_apfs_cache.sh
 ~/Library/LaunchAgents/com.local.memory-cache.plist
-~/.config/memory-cache-for-mac/config
 ~/Library/Logs/memory-cache.log
 ~/Library/Logs/memory-cache.err.log
 ```
@@ -101,30 +96,16 @@ Cache/Chrome
 Cache/Music
 ```
 
-## 配置
+## 修改容量
 
-`tmpfs` 和 `apfs` 分别使用不同位置的配置文件：
-
-- `tmpfs`：`/Library/Application Support/memory-cache-for-mac/config`
-- `apfs`：`~/.config/memory-cache-for-mac/config`
-
-配置示例：
+容量在安装时写入已安装的运行脚本。后续如需修改容量，请重新运行安装命令：
 
 ```sh
-BACKEND=tmpfs
-CACHE_SIZE=1g
-TMPFS_MOUNT_PATH="$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+./install.sh --backend apfs --size 1g
+sudo ./install.sh --backend tmpfs --size 512m
 ```
 
-说明：
-
-- `TMPFS_MOUNT_PATH` 可以改成别的用户目录路径。
-- `APFS_MOUNT_PATH` 必须保持为 `/Volumes/$APFS_DISK_NAME`。
-- 如果想改 APFS 挂载点名称，只能修改 `APFS_DISK_NAME`，从而改变派生出的 `/Volumes/<name>`。
-- 不支持把 APFS backend 挂载到任意自定义路径。
+挂载路径和默认缓存目录固定；当前版本不支持通过配置文件修改。
 
 ## 从 ramdisk-for-mac 迁移
 
@@ -139,10 +120,14 @@ diskutil eject /Volumes/Ramdisk
 ## 卸载
 
 ```sh
-./uninstall.sh
+./uninstall.sh --backend apfs
+sudo ./uninstall.sh --backend tmpfs
+sudo ./uninstall.sh --all
 ```
 
-卸载会移除两种 mode 的安装文件、配置和日志，但不会自动做下面这些事：
+不带参数时，如果只发现一个 backend，会卸载该 backend；如果两个 backend 都存在，会要求明确指定 `--backend apfs`、`--backend tmpfs` 或 `--all`。
+
+`--all` 包含 tmpfs 时必须从一开始就使用 `sudo`。卸载会移除目标 backend 的安装文件、旧配置清理产物和日志，但不会自动做下面这些事：
 
 - 不会自动卸载 `~/tmpfs`
 - 不会自动删除 `~/tmpfs` 目录
@@ -152,6 +137,6 @@ diskutil eject /Volumes/Ramdisk
 需要时请手动清理：
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```
