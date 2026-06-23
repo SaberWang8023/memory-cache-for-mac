@@ -838,7 +838,7 @@ rm -f "$OLD_PLIST_PATH" "$OLD_INSTALL_SCRIPT"
 
 echo "Uninstalled $LABEL"
 echo "Manual cleanup, if desired:"
-echo "  umount ~/tmpfs"
+echo "  sudo umount ~/tmpfs"
 echo "  diskutil eject /Volumes/Ramdisk"
 echo "Mount roots are not unmounted or deleted automatically."
 ```
@@ -879,7 +879,7 @@ git commit -m "feat: update memory-cache uninstall"
 **Interfaces:**
 - Documents user commands `./install.sh`, `./install.sh --backend tmpfs`, `./install.sh --backend apfs`, `./install.sh --size 1g`, and `./install.sh --backend tmpfs --size 512m`.
 - Documents config path `$HOME/.config/memory-cache-for-mac/config`.
-- Documents manual cleanup commands `umount ~/tmpfs` and `diskutil eject /Volumes/Ramdisk`.
+- Documents manual cleanup commands `sudo umount ~/tmpfs` and `diskutil eject /Volumes/Ramdisk`.
 
 - [ ] **Step 1: Update English README**
 
@@ -997,7 +997,7 @@ diskutil eject /Volumes/Ramdisk
 Uninstall removes installed files and config, but does not unmount or delete cache roots. Manual cleanup:
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```
 ```
@@ -1118,7 +1118,7 @@ diskutil eject /Volumes/Ramdisk
 卸载会移除安装文件和配置，但不会卸载或删除缓存根目录。手动清理：
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```
 ```

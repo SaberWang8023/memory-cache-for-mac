@@ -266,6 +266,6 @@ fi
 
 echo "Uninstalled $LABEL"
 echo "Manual cleanup, if desired:"
-echo "  umount ~/tmpfs"
+echo "  sudo umount ~/tmpfs"
 echo "  diskutil eject /Volumes/<APFS_DISK_NAME>"
 echo "Mount roots are not unmounted or deleted automatically."

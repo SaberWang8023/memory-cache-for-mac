@@ -20,7 +20,7 @@
 - `tmpfs` 安装在没有 root 权限时必须直接失败，并输出明确错误。
 - `apfs` 在普通用户安装时必须继续写入用户目录。
 - 切换 backend 时，安装器必须先删除另一种模式的安装产物，再安装新模式。
-- 卸载器不得自动 `umount ~/tmpfs`。
+- 卸载器不得自动 `sudo umount ~/tmpfs`。
 - 卸载器不得自动 eject `/Volumes/Ramdisk`。
 - 所有新增或更新文档都必须使用简体中文。
 
@@ -850,7 +850,7 @@ rm -f "$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist" "$TARGET_HOME/.local/
 ```sh
 echo "Uninstalled $LABEL"
 echo "Manual cleanup, if desired:"
-echo "  umount ~/tmpfs"
+echo "  sudo umount ~/tmpfs"
 echo "  diskutil eject /Volumes/<APFS_DISK_NAME>"
 echo "Mount roots are not unmounted or deleted automatically."
 ```

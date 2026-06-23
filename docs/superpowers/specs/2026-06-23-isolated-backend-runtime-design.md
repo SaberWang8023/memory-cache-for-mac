@@ -114,7 +114,7 @@ sudo ./install.sh --backend tmpfs
 - 重复执行 `sudo ./install.sh --backend tmpfs` 只覆盖 daemon/tmpfs 的脚本、plist 和日志路径。
 - 重复执行 `./install.sh --backend apfs` 只覆盖 agent/apfs 的脚本、plist 和日志路径。
 - 重复安装不删除另一个 backend 的当前安装产物。
-- 重复安装不自动 `umount ~/tmpfs`。
+- 重复安装不自动 `sudo umount ~/tmpfs`。
 - 重复安装不自动 eject `/Volumes/Ramdisk`。
 
 如果用户重复安装时修改 `--size`，安装器会更新已安装脚本中的 `CACHE_SIZE`，但不会重建已经挂载的 tmpfs 或 APFS ramdisk。
@@ -123,7 +123,7 @@ sudo ./install.sh --backend tmpfs
 
 - 如果目标 backend 当前没有挂载，下次 service 启动会使用新 size。
 - 如果目标 backend 已经挂载，runtime 仍然识别为“已经挂载”，不会为了应用新 size 自动卸载或重建。
-- 如需让新 size 立即生效，用户需要自行确认数据可丢弃后手动 `umount ~/tmpfs` 或 `diskutil eject /Volumes/Ramdisk`，再重新启动对应 service。
+- 如需让新 size 立即生效，用户需要自行确认数据可丢弃后手动 `sudo umount ~/tmpfs` 或 `diskutil eject /Volumes/Ramdisk`，再重新启动对应 service。
 
 ### tmpfs 安装
 
@@ -245,7 +245,7 @@ Run: sudo ./uninstall.sh --all
 卸载仍不自动执行：
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```
 

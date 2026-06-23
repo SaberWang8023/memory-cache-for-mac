@@ -137,6 +137,6 @@ sudo ./uninstall.sh --all
 需要时请手动清理：
 
 ```sh
-umount ~/tmpfs
+sudo umount ~/tmpfs
 diskutil eject /Volumes/Ramdisk
 ```

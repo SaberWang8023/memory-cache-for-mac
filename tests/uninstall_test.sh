@@ -261,6 +261,7 @@ run_all_root_test() {
   MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
   HOME="$HOME_DIR" \
     "$ROOT/uninstall.sh" --all >/tmp/memory-cache-uninstall-all.out
+  grep -Fq "sudo umount ~/tmpfs" /tmp/memory-cache-uninstall-all.out || fail "missing sudo tmpfs cleanup hint"
   assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_dir "$HOME_DIR/tmpfs"
