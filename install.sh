@@ -8,7 +8,9 @@ export PATH
 LABEL="com.local.memory-cache"
 OLD_LABEL="com.local.ramdisk"
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-SOURCE_SCRIPT="$SCRIPT_DIR/src/create_memory_cache.sh"
+TMPFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_tmpfs_cache.sh"
+APFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_apfs_cache.sh"
+SOURCE_SCRIPT=""
 AGENT_PLIST_TEMPLATE="$SCRIPT_DIR/src/$LABEL.agent.plist.template"
 DAEMON_PLIST_TEMPLATE="$SCRIPT_DIR/src/$LABEL.daemon.plist.template"
 SKIP_LAUNCHCTL="${MEMORY_CACHE_SKIP_LAUNCHCTL:-0}"
@@ -90,6 +92,14 @@ recommend_backend() {
 validate_backend() {
   case "$1" in
     tmpfs|apfs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+source_script_for_backend() {
+  case "$1" in
+    tmpfs) printf '%s\n' "$TMPFS_SOURCE_SCRIPT" ;;
+    apfs) printf '%s\n' "$APFS_SOURCE_SCRIPT" ;;
     *) return 1 ;;
   esac
 }
@@ -324,35 +334,17 @@ cleanup_current_mode_legacy() {
   remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT"
 }
 
-cleanup_legacy_configs() {
-  remove_files_if_present \
-    "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
-    "$TARGET_HOME/.config/memory-cache-for-mac/config"
-}
-
-cleanup_opposite_mode() {
+cleanup_legacy_config_for_mode() {
   case "$SERVICE_MODE" in
     agent)
-      bootout_daemon_if_present
       remove_files_if_present \
-        "$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist" \
-        "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" \
-        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
-        "$SYSTEM_ROOT/Library/Logs/memory-cache.log" \
-        "$SYSTEM_ROOT/Library/Logs/memory-cache.err.log" \
-        "$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist" \
-        "$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
+        "$TARGET_HOME/.config/memory-cache-for-mac/config" \
+        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
       ;;
     daemon)
-      bootout_agent_if_present
       remove_files_if_present \
-        "$TARGET_HOME/Library/LaunchAgents/$LABEL.plist" \
-        "$TARGET_HOME/.local/bin/create_memory_cache.sh" \
-        "$TARGET_HOME/.config/memory-cache-for-mac/config" \
-        "$TARGET_HOME/Library/Logs/memory-cache.log" \
-        "$TARGET_HOME/Library/Logs/memory-cache.err.log" \
-        "$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist" \
-        "$TARGET_HOME/.local/bin/create_ram_disk.sh"
+        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
+        "$TARGET_HOME/.config/memory-cache-for-mac/config"
       ;;
   esac
 }
@@ -391,8 +383,10 @@ install_runtime_script() {
     printf 'BACKEND=%s\n' "$(quote_shell_value "$backend")"
     printf 'CACHE_SIZE=%s\n' "$(quote_shell_value "$cache_size")"
     printf 'SERVICE_MODE=%s\n' "$(quote_shell_value "$SERVICE_MODE")"
-    printf 'TARGET_USER=%s\n' "$(quote_shell_value "$TARGET_USER")"
-    printf 'TARGET_HOME=%s\n' "$(quote_shell_value "$TARGET_HOME")"
+    if [ "$backend" = "tmpfs" ]; then
+      printf 'TARGET_USER=%s\n' "$(quote_shell_value "$TARGET_USER")"
+      printf 'TARGET_HOME=%s\n' "$(quote_shell_value "$TARGET_HOME")"
+    fi
     printf '\n'
     sed '1d;/^MEMORY_CACHE_INSTALLED=0$/d' "$SOURCE_SCRIPT"
   } > "$INSTALL_SCRIPT"
@@ -450,6 +444,7 @@ parse_args "$@"
 recommended_backend=$(recommend_backend)
 recommended_size=$(recommend_size)
 backend=$(choose_backend "$recommended_backend")
+SOURCE_SCRIPT=$(source_script_for_backend "$backend")
 SERVICE_MODE=$(service_mode_for_backend "$backend")
 
 if [ "$SERVICE_MODE" = "daemon" ] && [ "$(effective_uid)" -ne 0 ]; then
@@ -471,9 +466,8 @@ TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
 validate_target_context
 
 set_paths_for_mode "$SERVICE_MODE"
-cleanup_opposite_mode
 cleanup_current_mode_legacy
-cleanup_legacy_configs
+cleanup_legacy_config_for_mode
 install_files
 load_service
 
