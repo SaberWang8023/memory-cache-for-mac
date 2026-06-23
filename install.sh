@@ -24,8 +24,6 @@ SYSTEM_ROOT=""
 INSTALL_SCRIPT=""
 PLIST_PATH=""
 PLIST_TEMPLATE=""
-CONFIG_DIR=""
-CONFIG_PATH=""
 LOG_DIR=""
 LOG_PATH=""
 ERR_LOG_PATH=""
@@ -150,6 +148,10 @@ service_mode_for_backend() {
   esac
 }
 
+quote_shell_value() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
 set_paths_for_mode() {
   service_mode=$1
 
@@ -158,8 +160,6 @@ set_paths_for_mode() {
       INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
       PLIST_PATH="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
       PLIST_TEMPLATE="$AGENT_PLIST_TEMPLATE"
-      CONFIG_DIR="$TARGET_HOME/.config/memory-cache-for-mac"
-      CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$TARGET_HOME/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
@@ -170,8 +170,6 @@ set_paths_for_mode() {
       INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
       PLIST_PATH="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
       PLIST_TEMPLATE="$DAEMON_PLIST_TEMPLATE"
-      CONFIG_DIR="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac"
-      CONFIG_PATH="$CONFIG_DIR/config"
       LOG_DIR="$SYSTEM_ROOT/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
@@ -306,6 +304,12 @@ cleanup_current_mode_legacy() {
   remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT"
 }
 
+cleanup_legacy_configs() {
+  remove_files_if_present \
+    "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
+    "$TARGET_HOME/.config/memory-cache-for-mac/config"
+}
+
 cleanup_opposite_mode() {
   case "$SERVICE_MODE" in
     agent)
@@ -358,23 +362,20 @@ validate_target_context() {
   fi
 }
 
-write_config() {
-  backend=$1
-  cache_size=$2
-
-  mkdir -p "$CONFIG_DIR"
-  cat > "$CONFIG_PATH" <<EOF_CONFIG
-BACKEND=$backend
-CACHE_SIZE=$cache_size
-SERVICE_MODE=$SERVICE_MODE
-TARGET_USER=$TARGET_USER
-TARGET_HOME=$TARGET_HOME
-TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-  chmod 644 "$CONFIG_PATH"
+install_runtime_script() {
+  {
+    sed -n '1p' "$SOURCE_SCRIPT"
+    printf '\n'
+    printf '%s\n' "# 由 install.sh 安装。修改这些值请重新运行 install.sh。"
+    printf 'BACKEND=%s\n' "$(quote_shell_value "$backend")"
+    printf 'CACHE_SIZE=%s\n' "$(quote_shell_value "$cache_size")"
+    printf 'SERVICE_MODE=%s\n' "$(quote_shell_value "$SERVICE_MODE")"
+    printf 'TARGET_USER=%s\n' "$(quote_shell_value "$TARGET_USER")"
+    printf 'TARGET_HOME=%s\n' "$(quote_shell_value "$TARGET_HOME")"
+    printf '\n'
+    sed '1d' "$SOURCE_SCRIPT"
+  } > "$INSTALL_SCRIPT"
+  chmod 755 "$INSTALL_SCRIPT"
 }
 
 install_files() {
@@ -384,14 +385,12 @@ install_files() {
   case "$SERVICE_MODE" in
     agent)
       mkdir -p "$TARGET_HOME/.local/bin" "$TARGET_HOME/Library/LaunchAgents" "$LOG_DIR"
-      cp "$SOURCE_SCRIPT" "$INSTALL_SCRIPT"
-      chmod 755 "$INSTALL_SCRIPT"
+      install_runtime_script
       sed "s#__HOME__#$TARGET_HOME#g" "$PLIST_TEMPLATE" > "$PLIST_PATH"
       ;;
     daemon)
       mkdir -p "$(dirname "$INSTALL_SCRIPT")" "$(dirname "$PLIST_PATH")" "$LOG_DIR"
-      cp "$SOURCE_SCRIPT" "$INSTALL_SCRIPT"
-      chmod 755 "$INSTALL_SCRIPT"
+      install_runtime_script
       cp "$PLIST_TEMPLATE" "$PLIST_PATH"
       ;;
   esac
@@ -453,8 +452,8 @@ validate_target_context
 set_paths_for_mode "$SERVICE_MODE"
 cleanup_opposite_mode
 cleanup_current_mode_legacy
+cleanup_legacy_configs
 install_files
-write_config "$backend" "$cache_size"
 load_service
 
 echo "Installed $LABEL"
@@ -463,7 +462,6 @@ echo "Cache size: $cache_size"
 echo "Service mode: $SERVICE_MODE"
 echo "Target user: $TARGET_USER"
 echo "Target home: $TARGET_HOME"
-echo "Config: $CONFIG_PATH"
 echo "Script: $INSTALL_SCRIPT"
 echo "Plist: $PLIST_PATH"
 echo "Logs: $LOG_PATH and $ERR_LOG_PATH"
