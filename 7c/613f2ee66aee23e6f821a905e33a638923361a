@@ -1,0 +1,21 @@
+src/create_memory_cache.sh
+  s_41894bcb55945d::t_f56186485e94e4 90,93,95,108-113,126-130,182
+tests/runtime_test.sh
+  s_41894bcb55945d::t_b89f99dd8412ad 19-38,40-41,43,46-48,54-56,59,62-64,67,70-72,75,78-79,82,123,130-132,163,171-172,204,213,215-217,223-224,255,267-268,290,302-305,307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "7c613f2ee66aee23e6f821a905e33a638923361a",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
