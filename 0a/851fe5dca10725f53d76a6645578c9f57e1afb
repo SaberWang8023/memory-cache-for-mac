@@ -1,0 +1,21 @@
+docs/superpowers/specs/2026-06-23-remove-runtime-config-design.md
+  s_41894bcb55945d::t_e1336cb873c527 114
+  s_41894bcb55945d::t_cd4578061bf891 12,97,104,108
+  s_41894bcb55945d::t_982869805071b7 1-11,13-96,98-103,105-107,109-113,115-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "0a851fe5dca10725f53d76a6645578c9f57e1afb",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
