@@ -48,22 +48,14 @@
   - `~/Library/Logs/memory-cache.log`
   - `~/Library/Logs/memory-cache.err.log`
 
-## 切换 backend 时会发生什么
+`tmpfs` 和 `apfs` 可以同时安装。默认安装仍只安装推荐 backend；如果想同时使用两者，可以分别执行：
 
-从 `tmpfs` 切换到 `apfs`，或从 `apfs` 切换到 `tmpfs` 时，安装脚本会自动清理另一种 mode 的安装产物，包括：
+```sh
+sudo ./install.sh --backend tmpfs
+./install.sh --backend apfs
+```
 
-- plist
-- 安装脚本
-- 旧配置文件
-- 对应日志
-- 旧版 `com.local.ramdisk` 兼容文件
-
-它不会自动做这些事情：
-
-- 不会自动卸载 `~/tmpfs`
-- 不会自动删除 `~/tmpfs`
-- 不会自动 eject 现有 APFS 卷
-- 不会自动清空 `/Volumes/<APFS_DISK_NAME>` 里的内容
+重复安装同一个 backend 会覆盖该 backend 的脚本和 plist，但不会删除另一个 backend，也不会自动重建已经挂载的 tmpfs 或 APFS ramdisk。修改 `--size` 后，如果对应 backend 已经挂载，需要手动清理挂载点并重启 service 才会立即使用新容量。
 
 运行时也不会在 backend 之间静默回退。选定 backend 失败时会直接报错退出。
 
@@ -128,10 +120,14 @@ diskutil eject /Volumes/Ramdisk
 ## 卸载
 
 ```sh
-./uninstall.sh
+./uninstall.sh --backend apfs
+sudo ./uninstall.sh --backend tmpfs
+sudo ./uninstall.sh --all
 ```
 
-卸载会移除 agent 和 daemon 两种模式的安装文件、旧配置清理产物与日志，但不会自动卸载挂载点，也不会自动 eject 卷。
+不带参数时，如果只发现一个 backend，会卸载该 backend；如果两个 backend 都存在，会要求明确指定 `--backend apfs`、`--backend tmpfs` 或 `--all`。
+
+`--all` 包含 tmpfs 时必须从一开始就使用 `sudo`。卸载会移除目标 backend 的安装文件、旧配置清理产物与日志，但不会自动卸载挂载点，也不会自动 eject 卷。
 
 需要时手动执行：
 
