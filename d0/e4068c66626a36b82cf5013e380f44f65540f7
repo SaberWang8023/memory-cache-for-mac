@@ -1,0 +1,19 @@
+tests/uninstall_test.sh
+  s_41894bcb55945d::t_76f4bf4f21e2c8 72-76,79-83,94,98-102,105-109,149-212,234-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "d0e4068c66626a36b82cf5013e380f44f65540f7",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
