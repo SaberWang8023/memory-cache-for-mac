@@ -1,0 +1,22 @@
+install.sh
+  s_41894bcb55945d::t_25ee4d8ea42354 11-13,99-106,337,386-389,447,470
+  s_41894bcb55945d::t_5e5aa041f5d359 341-342,346-347
+tests/install_test.sh
+  s_41894bcb55945d::t_2a73733c792052 6-7,24-31,63-64,90-94,153-158,180,183-186,189-197,199-200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "9b1adb06180475474b6079a05dac3747fb8e7cb1",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
