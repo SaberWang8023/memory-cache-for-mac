@@ -16,198 +16,70 @@ make_home() {
   printf '%s\n' "$tmp/home"
 }
 
-HOME_DIR=$(make_home)
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing.out 2>&1; then
-  fail "missing config unexpectedly succeeded"
-fi
-grep -Fq "Missing config" /tmp/memory-cache-runtime-missing.out || fail "missing config error not found"
+make_runtime_script() {
+  dest=$1
+  backend=$2
+  service_mode=$3
+  cache_size=$4
+  target_user=$5
+  target_home=$6
+
+  {
+    sed -n '1p' "$SCRIPT"
+    printf '%s\n' "BACKEND='$backend'"
+    printf '%s\n' "SERVICE_MODE='$service_mode'"
+    printf '%s\n' "CACHE_SIZE='$cache_size'"
+    printf '%s\n' "TARGET_USER='$target_user'"
+    printf '%s\n' "TARGET_HOME='$target_home'"
+    sed '1d' "$SCRIPT"
+  } > "$dest"
+  chmod 755 "$dest"
+}
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=other
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-bad-backend.out 2>&1; then
+if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-constants.out 2>&1; then
+  fail "missing embedded constants unexpectedly succeeded"
+fi
+grep -Fq "Missing installed constant: BACKEND" /tmp/memory-cache-runtime-missing-constants.out || fail "missing constants error not found"
+
+HOME_DIR=$(make_home)
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" other agent 1g saber "$HOME_DIR"
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-bad-backend.out 2>&1; then
   fail "invalid backend unexpectedly succeeded"
 fi
 grep -Fq "Unsupported backend" /tmp/memory-cache-runtime-bad-backend.out || fail "invalid backend error not found"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH=
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-empty-tmpfs-path.out 2>&1; then
-  fail "empty TMPFS_MOUNT_PATH unexpectedly succeeded"
-fi
-grep -Fq "Missing required config: TMPFS_MOUNT_PATH" /tmp/memory-cache-runtime-empty-tmpfs-path.out || fail "empty TMPFS_MOUNT_PATH error not found"
-
-HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-service-mode.out 2>&1; then
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs '' 1g saber "$HOME_DIR"
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-missing-service-mode.out 2>&1; then
   fail "missing SERVICE_MODE unexpectedly succeeded"
 fi
-grep -Fq "Missing required config: SERVICE_MODE" /tmp/memory-cache-runtime-missing-service-mode.out || fail "missing SERVICE_MODE error not found"
+grep -Fq "Missing installed constant: SERVICE_MODE" /tmp/memory-cache-runtime-missing-service-mode.out || fail "missing SERVICE_MODE error not found"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-target-user.out 2>&1; then
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs agent 1g '' "$HOME_DIR"
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-missing-target-user.out 2>&1; then
   fail "missing TARGET_USER unexpectedly succeeded"
 fi
-grep -Fq "Missing required config: TARGET_USER" /tmp/memory-cache-runtime-missing-target-user.out || fail "missing TARGET_USER error not found"
+grep -Fq "Missing installed constant: TARGET_USER" /tmp/memory-cache-runtime-missing-target-user.out || fail "missing TARGET_USER error not found"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME=
-TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-target-home.out 2>&1; then
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs agent 1g saber ''
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-missing-target-home.out 2>&1; then
   fail "missing TARGET_HOME unexpectedly succeeded"
 fi
-grep -Fq "Missing required config: TARGET_HOME" /tmp/memory-cache-runtime-missing-target-home.out || fail "missing TARGET_HOME error not found"
+grep -Fq "Missing installed constant: TARGET_HOME" /tmp/memory-cache-runtime-missing-target-home.out || fail "missing TARGET_HOME error not found"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-mkdir -p "$HOME_DIR/tmpfs"
-echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
-if HOME="$HOME_DIR" TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs" "$SCRIPT" >/tmp/memory-cache-runtime-env-tmpfs-missing.out 2>&1; then
-  fail "missing TMPFS_MOUNT_PATH with env fallback unexpectedly succeeded"
-fi
-grep -Fq "Missing required config: TMPFS_MOUNT_PATH" /tmp/memory-cache-runtime-env-tmpfs-missing.out || fail "missing TMPFS_MOUNT_PATH env fallback was ignored"
-
-HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-create-dirs.out 2>&1; then
-  fail "missing CREATE_DIRS unexpectedly succeeded"
-fi
-grep -Fq "Missing required config: CREATE_DIRS" /tmp/memory-cache-runtime-missing-create-dirs.out || fail "missing CREATE_DIRS error not found"
-
-HOME_DIR=$(make_home)
-CONFIG_OVERRIDE="$HOME_DIR/override-config"
-cat > "$CONFIG_OVERRIDE" <<EOF_CONFIG
-BACKEND=other
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" MEMORY_CACHE_CONFIG_PATH="$CONFIG_OVERRIDE" "$SCRIPT" >/tmp/memory-cache-runtime-config-path-override.out 2>&1; then
-  fail "MEMORY_CACHE_CONFIG_PATH override unexpectedly succeeded"
-fi
-grep -Fq "Unsupported backend" /tmp/memory-cache-runtime-config-path-override.out || fail "MEMORY_CACHE_CONFIG_PATH override was not used"
-
-HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=apfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=FastRam
-APFS_MOUNT_PATH="\$HOME/custom-apfs"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-apfs-custom-path.out 2>&1; then
-  fail "custom APFS_MOUNT_PATH unexpectedly succeeded"
-fi
-grep -Fq "APFS_MOUNT_PATH must match /Volumes/FastRam for apfs backend" /tmp/memory-cache-runtime-apfs-custom-path.out || fail "custom APFS_MOUNT_PATH error not found"
-
-HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" apfs agent 1g saber "$HOME_DIR"
 APFS_NAME="RamdiskDetach-$PPID"
 APFS_PATH="/Volumes/$APFS_NAME"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=apfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=$APFS_NAME
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
+perl -0pi -e "s/APFS_DISK_NAME=Ramdisk/APFS_DISK_NAME='$APFS_NAME'/" "$RUNTIME"
 
 STUB_DIR="$HOME_DIR/bin-stubs"
 mkdir -p "$STUB_DIR"
@@ -248,27 +120,16 @@ if HOME="$HOME_DIR" \
   DISKUTIL_CMD="$STUB_DIR/diskutil" \
   MOUNT_CMD="$STUB_DIR/mount" \
   MEMORY_CACHE_TEST_COMMANDS=1 \
-  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-not-mounted.out 2>&1; then
+  "$RUNTIME" >/tmp/memory-cache-runtime-apfs-not-mounted.out 2>&1; then
   fail "apfs mountpoint missing path unexpectedly succeeded"
 fi
 grep -Fq "APFS volume was not mounted at $APFS_PATH" /tmp/memory-cache-runtime-apfs-not-mounted.out || fail "apfs mountpoint error not found"
 [ -f "$STUB_DIR/hdiutil.detach.invoked" ] || fail "apfs mountpoint failure did not detach attached ramdisk"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-APFS_NAME="../private/tmp/foo"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=apfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=$APFS_NAME
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" apfs agent 1g saber "$HOME_DIR"
+perl -0pi -e "s/APFS_DISK_NAME=Ramdisk/APFS_DISK_NAME='..\\/private\\/tmp\\/foo'/" "$RUNTIME"
 
 STUB_DIR="$HOME_DIR/bin-stubs-apfs-nonempty"
 mkdir -p "$STUB_DIR"
@@ -299,7 +160,7 @@ if HOME="$HOME_DIR" \
   DISKUTIL_CMD="$STUB_DIR/diskutil" \
   MOUNT_CMD="$STUB_DIR/mount" \
   MEMORY_CACHE_TEST_COMMANDS=1 \
-  "$SCRIPT" >/tmp/memory-cache-runtime-apfs-invalid-name.out 2>&1; then
+  "$RUNTIME" >/tmp/memory-cache-runtime-apfs-invalid-name.out 2>&1; then
   fail "invalid APFS_DISK_NAME unexpectedly succeeded"
 fi
 grep -Fq "Unsupported APFS_DISK_NAME: must be a single volume name" /tmp/memory-cache-runtime-apfs-invalid-name.out || fail "invalid APFS_DISK_NAME error not found"
@@ -307,19 +168,8 @@ grep -Fq "Unsupported APFS_DISK_NAME: must be a single volume name" /tmp/memory-
 [ ! -f "$STUB_DIR/diskutil.invoked" ] || fail "diskutil was called before rejecting invalid APFS_DISK_NAME"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=apfs
-SERVICE_MODE=agent
-CACHE_SIZE=bad
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" apfs agent bad saber "$HOME_DIR"
 
 STUB_DIR="$HOME_DIR/bin-stubs-no-switch"
 mkdir -p "$STUB_DIR"
@@ -351,7 +201,7 @@ if HOME="$HOME_DIR" \
   HDIUTIL_CMD="$STUB_DIR/hdiutil" \
   DISKUTIL_CMD="$STUB_DIR/diskutil" \
   MOUNT_CMD="$STUB_DIR/mount" \
-  "$SCRIPT" >/tmp/memory-cache-runtime-command-injection-unused.out 2>&1; then
+  "$RUNTIME" >/tmp/memory-cache-runtime-command-injection-unused.out 2>&1; then
   fail "runtime command injection override unexpectedly succeeded"
 fi
 grep -Fq "Unsupported cache size" /tmp/memory-cache-runtime-command-injection-unused.out || fail "invalid size error not found"
@@ -360,216 +210,20 @@ grep -Fq "Unsupported cache size" /tmp/memory-cache-runtime-command-injection-un
 [ ! -f "$STUB_DIR/mount.invoked" ] || fail "injected MOUNT_CMD was executed without MEMORY_CACHE_TEST_COMMANDS"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")" "$HOME_DIR/tmpfs"
+mkdir -p "$HOME_DIR/tmpfs"
 echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-nonempty.out 2>&1; then
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs agent 1g saber "$HOME_DIR"
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-nonempty.out 2>&1; then
   fail "non-empty ordinary tmpfs path unexpectedly succeeded"
 fi
 grep -Fq "Refusing to mount over non-empty directory" /tmp/memory-cache-runtime-nonempty.out || fail "non-empty directory error not found"
 
 HOME_DIR=$(make_home)
-SYSTEM_ROOT="$HOME_DIR/system-root-install"
-mkdir -p "$SYSTEM_ROOT"
-if ! MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
-  MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
-  MEMORY_CACHE_TEST_TARGET_USER=saber \
-  MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR" \
-  MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
-  HOME="$HOME_DIR" \
-  "$ROOT/install.sh" --backend tmpfs --size 512m >/tmp/memory-cache-runtime-install.out 2>&1; then
-  fail "install script failed for tmpfs"
-fi
-
-mkdir -p "$HOME_DIR/tmpfs"
-echo "keep me" > "$HOME_DIR/tmpfs/existing.txt"
-
-STUB_DIR="$HOME_DIR/bin-stubs"
-mkdir -p "$STUB_DIR"
-cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
-#!/bin/sh
-echo "unexpected mount_tmpfs invocation" >&2
-exit 1
-EOF_STUB
-chmod 755 "$STUB_DIR/mount_tmpfs"
-
-if HOME="$HOME_DIR" \
-  MEMORY_CACHE_TEST_COMMANDS=1 \
-  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
-  MEMORY_CACHE_CONFIG_PATH="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
-  "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" >/tmp/memory-cache-runtime-install-generated.out 2>&1; then
-  fail "install-generated runtime config unexpectedly succeeded"
-fi
-grep -Fq "Refusing to mount over non-empty directory: $HOME_DIR/tmpfs" /tmp/memory-cache-runtime-install-generated.out \
-  || fail "generated TMPFS_MOUNT_PATH was not expanded to runtime HOME"
-
-HOME_DIR=$(make_home)
-TARGET_HOME="$HOME_DIR/target-home"
-RUNTIME_HOME="$HOME_DIR/runtime-home"
-SYSTEM_ROOT="$HOME_DIR/system-root"
-mkdir -p "$TARGET_HOME/tmpfs"
-mkdir -p "$RUNTIME_HOME"
-echo "keep me" > "$TARGET_HOME/tmpfs/existing.txt"
-if ! MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
-  MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
-  MEMORY_CACHE_TEST_TARGET_USER=saber \
-  MEMORY_CACHE_TEST_TARGET_HOME="$TARGET_HOME" \
-  MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
-  HOME="$RUNTIME_HOME" \
-  "$ROOT/install.sh" --backend tmpfs --size 512m >/tmp/memory-cache-runtime-daemon-install.out 2>&1; then
-  fail "install script failed for daemon tmpfs contract"
-fi
-
-STUB_DIR="$HOME_DIR/bin-stubs-daemon"
-mkdir -p "$STUB_DIR"
-cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
-#!/bin/sh
-echo "unexpected mount_tmpfs invocation" >&2
-exit 1
-EOF_STUB
-chmod 755 "$STUB_DIR/mount_tmpfs"
-
-DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
-DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
-if HOME="$RUNTIME_HOME" \
-  MEMORY_CACHE_TEST_COMMANDS=1 \
-  MEMORY_CACHE_CONFIG_PATH="$DAEMON_CONFIG" \
-  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
-  "$DAEMON_SCRIPT" >/tmp/memory-cache-runtime-daemon-absolute-path.out 2>&1; then
-  fail "daemon runtime absolute tmpfs path unexpectedly succeeded"
-fi
-grep -Fq "Refusing to mount over non-empty directory: $TARGET_HOME/tmpfs" /tmp/memory-cache-runtime-daemon-absolute-path.out \
-  || fail "daemon runtime did not use TARGET_HOME tmpfs path"
-
-HOME_DIR=$(make_home)
-TARGET_HOME="$HOME_DIR/target-home-default"
-RUNTIME_HOME="$HOME_DIR/runtime-home-default"
-SYSTEM_ROOT="$HOME_DIR/system-root-default"
-USER_CONFIG="$RUNTIME_HOME/.config/memory-cache-for-mac/config"
-DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
-mkdir -p "$TARGET_HOME/tmpfs" "$(dirname "$USER_CONFIG")" "$(dirname "$DAEMON_CONFIG")"
-echo "keep me" > "$TARGET_HOME/tmpfs/existing.txt"
-cat > "$USER_CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=wrong-user
-TARGET_HOME="$RUNTIME_HOME"
-TMPFS_MOUNT_PATH="$RUNTIME_HOME/wrong-tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-cat > "$DAEMON_CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=daemon
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$TARGET_HOME"
-TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-
-STUB_DIR="$HOME_DIR/bin-stubs-daemon-default"
-mkdir -p "$STUB_DIR"
-cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
-#!/bin/sh
-echo "unexpected mount_tmpfs invocation" >&2
-exit 1
-EOF_STUB
-chmod 755 "$STUB_DIR/mount_tmpfs"
-
-DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
-mkdir -p "$(dirname "$DAEMON_SCRIPT")"
-cp "$SCRIPT" "$DAEMON_SCRIPT"
-if HOME="$RUNTIME_HOME" \
-  MEMORY_CACHE_TEST_COMMANDS=1 \
-  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
-  "$DAEMON_SCRIPT" >/tmp/memory-cache-runtime-daemon-default-path.out 2>&1; then
-  fail "daemon runtime default config path unexpectedly succeeded"
-fi
-grep -Fq "Refusing to mount over non-empty directory: $TARGET_HOME/tmpfs" /tmp/memory-cache-runtime-daemon-default-path.out \
-  || fail "daemon runtime did not prefer default daemon config path"
-
-HOME_DIR=$(make_home)
-TARGET_HOME="$HOME_DIR/target-home-broken"
-RUNTIME_HOME="$HOME_DIR/runtime-home-broken"
-SYSTEM_ROOT="$HOME_DIR/system-root-broken"
-USER_CONFIG="$RUNTIME_HOME/.config/memory-cache-for-mac/config"
-DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$USER_CONFIG")" "$(dirname "$DAEMON_CONFIG")"
-cat > "$USER_CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=1g
-TARGET_USER=fallback-user
-TARGET_HOME="$RUNTIME_HOME"
-TMPFS_MOUNT_PATH="$RUNTIME_HOME/fallback-tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-cat > "$DAEMON_CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-CACHE_SIZE=1g
-TARGET_USER=
-TARGET_HOME="$TARGET_HOME"
-TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-
-STUB_DIR="$HOME_DIR/bin-stubs-daemon-broken"
-mkdir -p "$STUB_DIR"
-cat > "$STUB_DIR/mount_tmpfs" <<'EOF_STUB'
-#!/bin/sh
-echo "unexpected mount_tmpfs invocation" >&2
-exit 1
-EOF_STUB
-chmod 755 "$STUB_DIR/mount_tmpfs"
-
-DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
-mkdir -p "$(dirname "$DAEMON_SCRIPT")"
-cp "$SCRIPT" "$DAEMON_SCRIPT"
-if HOME="$RUNTIME_HOME" \
-  MEMORY_CACHE_TEST_COMMANDS=1 \
-  MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
-  "$DAEMON_SCRIPT" >/tmp/memory-cache-runtime-daemon-broken-config.out 2>&1; then
-  fail "broken daemon config unexpectedly succeeded"
-fi
-grep -Fq "Missing required config: SERVICE_MODE" /tmp/memory-cache-runtime-daemon-broken-config.out \
-  || fail "broken daemon config fell back instead of failing explicitly"
-
-HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs daemon 1g saber "$HOME_DIR"
 CHOWN_LOG="$HOME_DIR/chown.log"
 MOUNT_LOG="$HOME_DIR/mount.log"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=daemon
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
 
 STUB_DIR="$HOME_DIR/bin-stubs-chown"
 mkdir -p "$STUB_DIR"
@@ -598,7 +252,7 @@ if ! HOME="$HOME_DIR" \
   MOUNT_TMPFS_CMD="$STUB_DIR/mount_tmpfs" \
   CHOWN_CMD="$STUB_DIR/chown" \
   MOUNT_CMD="$STUB_DIR/mount" \
-  "$SCRIPT" >/tmp/memory-cache-runtime-chown-after-mount.out 2>&1; then
+  "$RUNTIME" >/tmp/memory-cache-runtime-chown-after-mount.out 2>&1; then
   fail "tmpfs mount with chown unexpectedly failed"
 fi
 [ -d "$HOME_DIR/tmpfs/Downloads" ] || fail "Downloads dir missing after tmpfs mount"
@@ -610,20 +264,9 @@ grep -Fq "saber $HOME_DIR/tmpfs/Cache/Chrome" "$CHOWN_LOG" || fail "Cache/Chrome
 grep -Fq "saber $HOME_DIR/tmpfs/Cache/Music" "$CHOWN_LOG" || fail "Cache/Music ownership was not fixed after mount"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs daemon 1g saber "$HOME_DIR"
 CHOWN_LOG="$HOME_DIR/chown-mounted.log"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=daemon
-CACHE_SIZE=1g
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="$HOME_DIR/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
 
 STUB_DIR="$HOME_DIR/bin-stubs-mounted"
 mkdir -p "$STUB_DIR"
@@ -644,7 +287,7 @@ if ! HOME="$HOME_DIR" \
   MEMORY_CACHE_TEST_COMMANDS=1 \
   CHOWN_CMD="$STUB_DIR/chown" \
   MOUNT_CMD="$STUB_DIR/mount" \
-  "$SCRIPT" >/tmp/memory-cache-runtime-chown-mounted.out 2>&1; then
+  "$RUNTIME" >/tmp/memory-cache-runtime-chown-mounted.out 2>&1; then
   fail "already-mounted tmpfs ownership fix unexpectedly failed"
 fi
 [ -d "$HOME_DIR/tmpfs/Downloads" ] || fail "Downloads dir missing for already-mounted tmpfs"
@@ -656,22 +299,11 @@ grep -Fq "saber $HOME_DIR/tmpfs/Cache/Chrome" "$CHOWN_LOG" || fail "Cache/Chrome
 grep -Fq "saber $HOME_DIR/tmpfs/Cache/Music" "$CHOWN_LOG" || fail "Cache/Music ownership was not fixed for already-mounted tmpfs"
 
 HOME_DIR=$(make_home)
-CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
-mkdir -p "$(dirname "$CONFIG")"
-cat > "$CONFIG" <<EOF_CONFIG
-BACKEND=tmpfs
-SERVICE_MODE=agent
-CACHE_SIZE=bad
-TARGET_USER=saber
-TARGET_HOME="$HOME_DIR"
-TMPFS_MOUNT_PATH="\$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/\$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
-EOF_CONFIG
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-bad-size.out 2>&1; then
-  fail "invalid cache size unexpectedly succeeded"
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" tmpfs invalid 1g saber "$HOME_DIR"
+if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-bad-service-mode.out 2>&1; then
+  fail "invalid service mode unexpectedly succeeded"
 fi
-grep -Fq "Unsupported cache size" /tmp/memory-cache-runtime-bad-size.out || fail "invalid size error not found"
+grep -Fq "Unsupported service mode" /tmp/memory-cache-runtime-bad-service-mode.out || fail "invalid service mode error not found"
 
 echo "runtime tests passed"

@@ -24,29 +24,6 @@ fail() {
   exit 1
 }
 
-runtime_daemon_config_path() {
-  script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
-
-  case "$script_dir" in
-    */usr/local/libexec)
-      system_root=${script_dir%/usr/local/libexec}
-      printf '%s\n' "$system_root/Library/Application Support/memory-cache-for-mac/config"
-      return
-      ;;
-  esac
-
-  printf '%s\n' "/Library/Application Support/memory-cache-for-mac/config"
-}
-
-is_daemon_runtime_context() {
-  script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
-
-  case "$script_dir" in
-    */usr/local/libexec) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 normalize_size() {
   size=$1
   case "$size" in
@@ -110,12 +87,12 @@ fix_tmpfs_ownership() {
   done
 }
 
-require_config_var() {
+require_installed_constant() {
   var_name=$1
   eval "is_set=\${$var_name+x}"
-  [ "$is_set" = x ] || fail "Missing required config: $var_name"
+  [ "$is_set" = x ] || fail "Missing installed constant: $var_name"
   eval "value=\${$var_name}"
-  [ -n "$value" ] || fail "Missing required config: $var_name"
+  [ -n "$value" ] || fail "Missing installed constant: $var_name"
 }
 
 validate_apfs_disk_name() {
@@ -128,46 +105,12 @@ validate_apfs_disk_name() {
   fi
 }
 
-resolve_default_config_path() {
-  daemon_config_path=$(runtime_daemon_config_path)
-  user_config_path="$HOME/.config/memory-cache-for-mac/config"
-
-  if [ -n "${MEMORY_CACHE_CONFIG_PATH:-}" ]; then
-    printf '%s\n' "$MEMORY_CACHE_CONFIG_PATH"
-    return
-  fi
-
-  if is_daemon_runtime_context; then
-    printf '%s\n' "$daemon_config_path"
-    return
-  fi
-
-  if [ -f "$user_config_path" ]; then
-    printf '%s\n' "$user_config_path"
-    return
-  fi
-
-  printf '%s\n' "$user_config_path"
-}
-
-load_config_from() {
-  config_path=$1
-
-  [ -f "$config_path" ] || fail "Missing config: $config_path. Re-run ./install.sh."
-  unset BACKEND CACHE_SIZE TMPFS_MOUNT_PATH APFS_DISK_NAME APFS_MOUNT_PATH CREATE_DIRS
-  unset SERVICE_MODE TARGET_USER TARGET_HOME
-  # shellcheck disable=SC1090
-  . "$config_path"
-
-  require_config_var BACKEND
-  require_config_var SERVICE_MODE
-  require_config_var CACHE_SIZE
-  require_config_var TARGET_USER
-  require_config_var TARGET_HOME
-  require_config_var TMPFS_MOUNT_PATH
-  require_config_var APFS_DISK_NAME
-  require_config_var APFS_MOUNT_PATH
-  require_config_var CREATE_DIRS
+load_embedded_runtime_config() {
+  require_installed_constant BACKEND
+  require_installed_constant SERVICE_MODE
+  require_installed_constant CACHE_SIZE
+  require_installed_constant TARGET_USER
+  require_installed_constant TARGET_HOME
 
   case "$SERVICE_MODE" in
     agent|daemon) ;;
@@ -180,17 +123,11 @@ load_config_from() {
   esac
 
   CACHE_SIZE=$(normalize_size "$CACHE_SIZE") || fail "Unsupported cache size: $CACHE_SIZE"
-
-  if [ "$BACKEND" = "apfs" ]; then
-    validate_apfs_disk_name
-    expected_apfs_mount_path="/Volumes/$APFS_DISK_NAME"
-    [ "$APFS_MOUNT_PATH" = "$expected_apfs_mount_path" ] || fail "APFS_MOUNT_PATH must match $expected_apfs_mount_path for apfs backend"
-  fi
-}
-
-load_config() {
-  CONFIG_PATH=$(resolve_default_config_path)
-  load_config_from "$CONFIG_PATH"
+  TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
+  APFS_DISK_NAME=Ramdisk
+  APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
+  CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+  validate_apfs_disk_name
 }
 
 mount_tmpfs_backend() {
@@ -242,7 +179,7 @@ mount_apfs_backend() {
   ensure_child_dirs "$APFS_MOUNT_PATH"
 }
 
-load_config
+load_embedded_runtime_config
 case "$BACKEND" in
   tmpfs) mount_tmpfs_backend ;;
   apfs) mount_apfs_backend ;;
