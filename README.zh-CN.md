@@ -31,7 +31,6 @@
 - 安装文件路径：
   - `/usr/local/libexec/create_memory_cache.sh`
   - `/Library/LaunchDaemons/com.local.memory-cache.plist`
-  - `/Library/Application Support/memory-cache-for-mac/config`
 - 日志路径：
   - `/Library/Logs/memory-cache.log`
   - `/Library/Logs/memory-cache.err.log`
@@ -45,7 +44,6 @@
 - 安装文件路径：
   - `~/.local/bin/create_memory_cache.sh`
   - `~/Library/LaunchAgents/com.local.memory-cache.plist`
-  - `~/.config/memory-cache-for-mac/config`
 - 日志路径：
   - `~/Library/Logs/memory-cache.log`
   - `~/Library/Logs/memory-cache.err.log`
@@ -56,7 +54,7 @@
 
 - plist
 - 安装脚本
-- 配置文件
+- 旧配置文件
 - 对应日志
 - 旧版 `com.local.ramdisk` 兼容文件
 
@@ -79,7 +77,7 @@
 | `> 16 GB` 且 `<= 48 GB` | `1g` |
 | `> 48 GB` | `2g` |
 
-你可以在安装时覆盖这个值，也可以之后直接改配置文件。
+你可以在安装时覆盖这个值。
 
 ## 安装
 
@@ -106,30 +104,16 @@ Cache/Chrome
 Cache/Music
 ```
 
-## 配置
+## 修改容量
 
-两种 mode 的配置文件路径不同：
-
-- `tmpfs`：`/Library/Application Support/memory-cache-for-mac/config`
-- `apfs`：`~/.config/memory-cache-for-mac/config`
-
-配置示例：
+容量在安装时写入已安装的运行脚本。后续如需修改容量，请重新运行安装命令：
 
 ```sh
-BACKEND=tmpfs
-CACHE_SIZE=1g
-TMPFS_MOUNT_PATH="$HOME/tmpfs"
-APFS_DISK_NAME=Ramdisk
-APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
-CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
+./install.sh --backend apfs --size 1g
+sudo ./install.sh --backend tmpfs --size 512m
 ```
 
-约束如下：
-
-- `TMPFS_MOUNT_PATH` 可以改。
-- `APFS_MOUNT_PATH` 必须等于 `/Volumes/$APFS_DISK_NAME`。
-- 如果要改 APFS 卷名，请修改 `APFS_DISK_NAME`。
-- 不支持把 APFS backend 绑定到任意自定义路径。
+挂载路径和默认缓存目录固定；当前版本不支持通过配置文件修改。
 
 ## 迁移说明
 
@@ -147,7 +131,7 @@ diskutil eject /Volumes/Ramdisk
 ./uninstall.sh
 ```
 
-卸载会移除 agent 和 daemon 两种模式的安装文件、配置文件与日志，但不会自动卸载挂载点，也不会自动 eject 卷。
+卸载会移除 agent 和 daemon 两种模式的安装文件、旧配置清理产物与日志，但不会自动卸载挂载点，也不会自动 eject 卷。
 
 需要时手动执行：
 
