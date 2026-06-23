@@ -1,0 +1,33 @@
+tests/uninstall_test.sh
+  s_db81b80397ed0c::t_22fa0fec3ef717 264
+README.md
+  s_db81b80397ed0c::t_a5b0767adf3f7a 140
+docs/superpowers/specs/2026-06-17-memory-cache-for-mac-design.md
+  s_db81b80397ed0c::t_a5b0767adf3f7a 183
+uninstall.sh
+  s_db81b80397ed0c::t_a5b0767adf3f7a 269
+docs/superpowers/specs/2026-06-22-backend-based-service-mode-design.md
+  s_db81b80397ed0c::t_a5b0767adf3f7a 238
+docs/superpowers/plans/2026-06-17-memory-cache-for-mac.md
+  s_db81b80397ed0c::t_6fc3a64591a0e9 841,882,1000,1121
+docs/superpowers/specs/2026-06-23-isolated-backend-runtime-design.md
+  s_db81b80397ed0c::t_a5b0767adf3f7a 117,126,248
+docs/superpowers/plans/2026-06-22-backend-based-service-mode.md
+  s_db81b80397ed0c::t_6fc3a64591a0e9 23,853
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "c3a4b126a530793665b7804a7eb59217c806ee51",
+  "prompts": {},
+  "sessions": {
+    "s_db81b80397ed0c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef341-6ac4-7a73-8ca5-7b8f6dab8de5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
