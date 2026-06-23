@@ -15,6 +15,10 @@ assert_file() {
   [ -f "$1" ] || fail "missing file: $1"
 }
 
+assert_exists() {
+  [ -e "$1" ] || fail "expected present: $1"
+}
+
 assert_contains() {
   file=$1
   expected=$2
@@ -177,7 +181,7 @@ MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
 MEMORY_CACHE_TEST_TARGET_USER=saber \
 MEMORY_CACHE_TEST_TARGET_HOME="$HOME_DIR" \
-  MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
+MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
 HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend apfs --size 1g >/tmp/memory-cache-install-switch-to-agent.out
 assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
@@ -185,9 +189,10 @@ assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
 assert_not_exists "$HOME_DIR/.config/memory-cache-for-mac/config"
-assert_not_exists "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
+assert_exists "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
 
 printf '%s\n' "agent keep" > "$HOME_DIR/.local/bin/create_memory_cache.sh"
+: > "$HOME_DIR/.config/memory-cache-for-mac/config"
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
 MEMORY_CACHE_TEST_TARGET_USER=saber \
@@ -198,6 +203,8 @@ HOME="$HOME_DIR" \
 assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 grep -Fq "agent keep" "$HOME_DIR/.local/bin/create_memory_cache.sh" || fail "repeat tmpfs install changed agent script"
 assert_contains "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" "CACHE_SIZE='512m'"
+assert_not_exists "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
+assert_exists "$HOME_DIR/.config/memory-cache-for-mac/config"
 
 HOME_DIR=$(make_home)
 if MEMORY_CACHE_SKIP_LAUNCHCTL=1 HOME="$HOME_DIR" "$ROOT/install.sh" --backend invalid >/tmp/memory-cache-install-bad-backend.out 2>&1; then

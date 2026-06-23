@@ -337,14 +337,10 @@ cleanup_current_mode_legacy() {
 cleanup_legacy_config_for_mode() {
   case "$SERVICE_MODE" in
     agent)
-      remove_files_if_present \
-        "$TARGET_HOME/.config/memory-cache-for-mac/config" \
-        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
+      remove_files_if_present "$TARGET_HOME/.config/memory-cache-for-mac/config"
       ;;
     daemon)
-      remove_files_if_present \
-        "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config" \
-        "$TARGET_HOME/.config/memory-cache-for-mac/config"
+      remove_files_if_present "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
       ;;
   esac
 }
