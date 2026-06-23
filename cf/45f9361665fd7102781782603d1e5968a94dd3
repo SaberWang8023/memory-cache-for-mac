@@ -1,0 +1,27 @@
+tests/runtime_test.sh
+  s_41894bcb55945d::t_142ef175cd9228 29,41-48,50,127-131,133-162,164-169,171
+  s_41894bcb55945d::t_5e48661c6e977b 132,163,170
+tests/install_test.sh
+  s_41894bcb55945d::t_142ef175cd9228 70,109-110,112,129
+src/create_memory_cache.sh
+  s_41894bcb55945d::t_d94b0272240ea2 109,116
+  s_41894bcb55945d::t_5e48661c6e977b 132-134
+install.sh
+  s_41894bcb55945d::t_d94b0272240ea2 390
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "cf45f9361665fd7102781782603d1e5968a94dd3",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
