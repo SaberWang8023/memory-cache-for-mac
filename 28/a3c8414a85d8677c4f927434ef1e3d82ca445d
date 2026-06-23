@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-06-23-isolated-backend-runtime.md
+  s_41894bcb55945d::t_858f5a23e04fac 1-1083
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "28a3c8414a85d8677c4f927434ef1e3d82ca445d",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
