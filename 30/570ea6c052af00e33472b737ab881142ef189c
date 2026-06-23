@@ -1,0 +1,21 @@
+README.md
+  s_41894bcb55945d::t_b77ef8fdd60cc8 31,33-36,38,125-127,130-132
+README.zh-CN.md
+  s_41894bcb55945d::t_1dcd9c1b733a80 51,53-56,58,123-125,128-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "30570ea6c052af00e33472b737ab881142ef189c",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
