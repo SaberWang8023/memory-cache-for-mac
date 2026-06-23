@@ -306,20 +306,6 @@ remove_files_if_present() {
   rm -f "$@"
 }
 
-bootout_agent_if_present() {
-  agent_plist="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
-  if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-    launchctl bootout "gui/$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)" "$agent_plist" >/dev/null 2>&1 || true
-  fi
-}
-
-bootout_daemon_if_present() {
-  daemon_plist="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
-  if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-    launchctl bootout system "$daemon_plist" >/dev/null 2>&1 || true
-  fi
-}
-
 cleanup_current_mode_legacy() {
   if [ "$SERVICE_MODE" = "agent" ]; then
     if [ "$SKIP_LAUNCHCTL" != "1" ]; then

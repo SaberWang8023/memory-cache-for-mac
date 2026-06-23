@@ -1,7 +1,5 @@
 # memory-cache-for-mac
 
-[中文补充说明](README.zh-CN.md)
-
 一个用于 macOS 的易失性内存缓存安装脚本，会按照 backend 选择不同的 service mode，在登录后自动准备缓存目录或卷。
 
 当前实现只有两种受支持的组合：
