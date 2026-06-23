@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-06-23-isolated-backend-runtime-design.md
+  s_41894bcb55945d::t_3f4ba9f1a2993c 1-280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "4ac1fb0c086e0e859349525c8a2c4a98aabf4639",
+  "prompts": {},
+  "sessions": {
+    "s_41894bcb55945d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ef292-9b02-72b2-b652-631eacee54f4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
