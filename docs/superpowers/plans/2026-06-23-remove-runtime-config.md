@@ -32,7 +32,7 @@
 
 ---
 
-### 任务 1：运行时停止读取 config
+### Task 1：运行时停止读取 config
 
 **文件：**
 - 修改：`tests/runtime_test.sh`
@@ -197,7 +197,7 @@ rtk git commit -m "fix: 从运行时移除 config 加载"
 
 ---
 
-### 任务 2：安装器注入运行时常量并停止创建 config
+### Task 2：安装器注入运行时常量并停止创建 config
 
 **文件：**
 - 修改：`tests/install_test.sh`
@@ -365,7 +365,7 @@ rtk git commit -m "fix: 安装时嵌入运行时常量"
 
 ---
 
-### 任务 3：文档和全量验证
+### Task 3：文档和全量验证
 
 **文件：**
 - 修改：`README.md`
