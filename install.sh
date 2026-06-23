@@ -394,7 +394,7 @@ install_runtime_script() {
     printf 'TARGET_USER=%s\n' "$(quote_shell_value "$TARGET_USER")"
     printf 'TARGET_HOME=%s\n' "$(quote_shell_value "$TARGET_HOME")"
     printf '\n'
-    sed '1d' "$SOURCE_SCRIPT"
+    sed '1d;/^MEMORY_CACHE_INSTALLED=0$/d' "$SOURCE_SCRIPT"
   } > "$INSTALL_SCRIPT"
   chmod 755 "$INSTALL_SCRIPT"
 }

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+MEMORY_CACHE_INSTALLED=0
+
 set -eu
 
 PATH=/usr/bin:/bin:/usr/sbin:/sbin

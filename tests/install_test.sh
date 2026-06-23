@@ -3,6 +3,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
+SOURCE_SCRIPT="$ROOT/src/create_memory_cache.sh"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -50,6 +51,8 @@ if grep -Fq "Unsupported cache size" /tmp/memory-cache-install-tmpfs-sudo-before
   fail "tmpfs checked size before asking for sudo"
 fi
 
+assert_contains "$SOURCE_SCRIPT" "MEMORY_CACHE_INSTALLED=0"
+
 SANDBOX_ROOT=$(make_sandbox_root)
 HOME_DIR="$SANDBOX_ROOT/home"
 SYSTEM_ROOT="$SANDBOX_ROOT/system"
@@ -68,6 +71,7 @@ assert_not_exists "$DAEMON_CONFIG"
 DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$DAEMON_SCRIPT"
 assert_contains "$DAEMON_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
+[ "$(grep -Fc "MEMORY_CACHE_INSTALLED=0" "$DAEMON_SCRIPT")" -eq 0 ] || fail "daemon runtime kept source install sentinel"
 assert_contains "$DAEMON_SCRIPT" "BACKEND='tmpfs'"
 assert_contains "$DAEMON_SCRIPT" "CACHE_SIZE='2g'"
 assert_contains "$DAEMON_SCRIPT" "SERVICE_MODE='daemon'"
@@ -127,6 +131,7 @@ assert_not_exists "$AGENT_CONFIG"
 AGENT_SCRIPT="$HOME_DIR/.local/bin/create_memory_cache.sh"
 assert_file "$AGENT_SCRIPT"
 assert_contains "$AGENT_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
+[ "$(grep -Fc "MEMORY_CACHE_INSTALLED=0" "$AGENT_SCRIPT")" -eq 0 ] || fail "agent runtime kept source install sentinel"
 assert_contains "$AGENT_SCRIPT" "BACKEND='apfs'"
 assert_contains "$AGENT_SCRIPT" "CACHE_SIZE='512m'"
 assert_contains "$AGENT_SCRIPT" "SERVICE_MODE='agent'"

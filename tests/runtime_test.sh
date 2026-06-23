@@ -26,13 +26,15 @@ make_runtime_script() {
 
   {
     sed -n '1p' "$SCRIPT"
+    printf '\n'
     printf '%s\n' "MEMORY_CACHE_INSTALLED='1'"
     printf '%s\n' "BACKEND='$backend'"
     printf '%s\n' "SERVICE_MODE='$service_mode'"
     printf '%s\n' "CACHE_SIZE='$cache_size'"
     printf '%s\n' "TARGET_USER='$target_user'"
     printf '%s\n' "TARGET_HOME='$target_home'"
-    sed '1d' "$SCRIPT"
+    printf '\n'
+    sed '1d;/^MEMORY_CACHE_INSTALLED=0$/d' "$SCRIPT"
   } > "$dest"
   chmod 755 "$dest"
 }
@@ -48,6 +50,19 @@ if BACKEND=tmpfs \
   fail "source runtime without install marker unexpectedly succeeded"
 fi
 grep -Fq "Missing installed constant: MEMORY_CACHE_INSTALLED" /tmp/memory-cache-runtime-missing-constants.out || fail "missing install marker error not found"
+
+HOME_DIR=$(make_home)
+if MEMORY_CACHE_INSTALLED=1 \
+  BACKEND=tmpfs \
+  SERVICE_MODE=daemon \
+  CACHE_SIZE=1g \
+  TARGET_USER=saber \
+  TARGET_HOME="$HOME_DIR" \
+  HOME="$HOME_DIR" \
+  "$SCRIPT" >/tmp/memory-cache-runtime-forged-install-marker.out 2>&1; then
+  fail "source runtime with forged install marker unexpectedly succeeded"
+fi
+grep -Fq "Missing installed constant: MEMORY_CACHE_INSTALLED" /tmp/memory-cache-runtime-forged-install-marker.out || fail "forged install marker error not found"
 
 HOME_DIR=$(make_home)
 RUNTIME="$HOME_DIR/create_memory_cache.sh"
@@ -169,6 +184,55 @@ if HOME="$HOME_DIR" \
 fi
 grep -Fq "APFS volume was not mounted at $APFS_TEST_MOUNT_PATH" /tmp/memory-cache-runtime-apfs-missing-mount.out || fail "missing APFS mount failure error"
 grep -Fq "detach /dev/disk9" "$DETACH_LOG" || fail "APFS failure did not detach ramdisk"
+
+HOME_DIR=$(make_home)
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" apfs agent 1g saber "$HOME_DIR"
+STUB_DIR="$HOME_DIR/bin-stubs-apfs-hook-guard"
+mkdir -p "$STUB_DIR"
+APFS_TEST_MOUNT_PATH="$HOME_DIR/should-not-be-used"
+
+cat > "$STUB_DIR/hdiutil" <<EOF_STUB
+#!/bin/sh
+if [ "\$1" = "attach" ]; then
+  echo "/dev/disk10"
+  exit 0
+fi
+if [ "\$1" = "detach" ]; then
+  printf '%s\n' "\$*" >> "$DETACH_LOG"
+  exit 0
+fi
+echo "unexpected hdiutil args: \$*" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/hdiutil"
+
+cat > "$STUB_DIR/diskutil" <<'EOF_STUB'
+#!/bin/sh
+exit 0
+EOF_STUB
+chmod 755 "$STUB_DIR/diskutil"
+
+cat > "$STUB_DIR/mount" <<EOF_STUB
+#!/bin/sh
+echo "/dev/disk9s1 on $APFS_TEST_MOUNT_PATH (apfs, local)"
+EOF_STUB
+chmod 755 "$STUB_DIR/mount"
+
+if HOME="$HOME_DIR" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  MEMORY_CACHE_TEST_APFS_MOUNT_PATH="$APFS_TEST_MOUNT_PATH" \
+  HDIUTIL_CMD="$STUB_DIR/hdiutil" \
+  DISKUTIL_CMD="$STUB_DIR/diskutil" \
+  MOUNT_CMD="$STUB_DIR/mount" \
+  "$RUNTIME" >/tmp/memory-cache-runtime-apfs-hook-enabled.out 2>&1; then
+  :
+else
+  fail "apfs mountpoint override in test mode unexpectedly failed"
+fi
+
+grep -Fq 'if [ "${MEMORY_CACHE_TEST_COMMANDS:-0}" = "1" ] && [ -n "${MEMORY_CACHE_TEST_APFS_MOUNT_PATH:-}" ]; then' "$SCRIPT" || fail "APFS mount path hook lost its test-mode guard"
+grep -Fq 'APFS_MOUNT_PATH=$MEMORY_CACHE_TEST_APFS_MOUNT_PATH' "$SCRIPT" || fail "APFS mount path hook assignment missing"
 
 HOME_DIR=$(make_home)
 mkdir -p "$HOME_DIR/tmpfs"
