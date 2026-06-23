@@ -187,22 +187,24 @@ set_paths_for_mode() {
 
   case "$service_mode" in
     agent)
-      INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
+      INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_apfs_cache.sh"
       PLIST_PATH="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
       PLIST_TEMPLATE="$AGENT_PLIST_TEMPLATE"
       LOG_DIR="$TARGET_HOME/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
+      OLD_MEMORY_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
       OLD_SCRIPT="$TARGET_HOME/.local/bin/create_ram_disk.sh"
       OLD_PLIST="$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist"
       ;;
     daemon)
-      INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+      INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
       PLIST_PATH="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
       PLIST_TEMPLATE="$DAEMON_PLIST_TEMPLATE"
       LOG_DIR="$SYSTEM_ROOT/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
+      OLD_MEMORY_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
       OLD_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
       OLD_PLIST="$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist"
       ;;
@@ -317,7 +319,7 @@ cleanup_current_mode_legacy() {
     fi
   fi
 
-  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT"
+  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT" "$OLD_MEMORY_SCRIPT"
 }
 
 cleanup_legacy_config_for_mode() {

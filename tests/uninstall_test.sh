@@ -43,6 +43,7 @@ make_uninstall_fixture() {
 }
 
 seed_agent_assets() {
+  : > "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   : > "$HOME_DIR/.local/bin/create_memory_cache.sh"
   : > "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   : > "$HOME_DIR/.config/memory-cache-for-mac/config"
@@ -53,6 +54,7 @@ seed_agent_assets() {
 }
 
 seed_daemon_assets() {
+  : > "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   : > "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
   : > "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
   : > "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
@@ -69,6 +71,7 @@ seed_agent_assets_for_home() {
     "$target_home/Library/LaunchAgents" \
     "$target_home/Library/Logs" \
     "$target_home/.config/memory-cache-for-mac"
+  : > "$target_home/.local/bin/create_apfs_cache.sh"
   : > "$target_home/.local/bin/create_memory_cache.sh"
   : > "$target_home/Library/LaunchAgents/com.local.memory-cache.plist"
   : > "$target_home/.config/memory-cache-for-mac/config"
@@ -100,6 +103,7 @@ run_backend_apfs_only_test() {
   HOME="$HOME_DIR" \
     "$ROOT/uninstall.sh" --backend apfs >/tmp/memory-cache-uninstall-apfs.out
 
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_absent "$HOME_DIR/.config/memory-cache-for-mac/config"
@@ -107,6 +111,7 @@ run_backend_apfs_only_test() {
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.log"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.err.log"
+  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
   assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
   assert_file "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
@@ -126,6 +131,7 @@ run_backend_tmpfs_only_test() {
     MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
   HOME="$HOME_DIR" \
       "$ROOT/uninstall.sh" --backend tmpfs >/tmp/memory-cache-uninstall-tmpfs.out
+  assert_file "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
   assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_file "$HOME_DIR/.config/memory-cache-for-mac/config"
@@ -133,6 +139,7 @@ run_backend_tmpfs_only_test() {
   assert_file "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
   assert_file "$HOME_DIR/Library/Logs/memory-cache.log"
   assert_file "$HOME_DIR/Library/Logs/memory-cache.err.log"
+  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
   assert_absent "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
   assert_absent "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
@@ -157,8 +164,8 @@ run_all_requires_sudo_without_partial_delete_test() {
     fail "--all without sudo unexpectedly succeeded"
   fi
   grep -Fq "tmpfs uninstall requires sudo because it removes a LaunchDaemon" "$STDERR_FILE" || fail "missing --all sudo error"
-  assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
-  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_file "$HOME_DIR/.local/bin/create_apfs_cache.sh"
+  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 }
 
 run_default_requires_choice_when_both_exist_test() {
@@ -175,8 +182,8 @@ run_default_requires_choice_when_both_exist_test() {
     fail "default uninstall with both backends unexpectedly succeeded"
   fi
   grep -Fq "Multiple backends are installed" "$STDERR_FILE" || fail "missing multiple backend error"
-  assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
-  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_file "$HOME_DIR/.local/bin/create_apfs_cache.sh"
+  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 }
 
 run_default_apfs_only_test() {
@@ -189,14 +196,14 @@ run_default_apfs_only_test() {
     HOME="$HOME_DIR" \
       "$ROOT/uninstall.sh" >/tmp/memory-cache-uninstall-default-apfs.out
 
-  assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_absent "$HOME_DIR/.config/memory-cache-for-mac/config"
   assert_absent "$HOME_DIR/.local/bin/create_ram_disk.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.log"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.err.log"
-  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 }
 
 run_default_tmpfs_requires_sudo_test() {
@@ -214,7 +221,7 @@ run_default_tmpfs_requires_sudo_test() {
   fi
   grep -Fq "tmpfs uninstall requires sudo because it removes a LaunchDaemon" "$STDERR_FILE" || fail "missing default tmpfs sudo error"
   grep -Fq "Run: sudo ./uninstall.sh --backend tmpfs" "$STDERR_FILE" || fail "missing default tmpfs sudo hint"
-  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
   assert_file "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
   assert_file "$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
@@ -237,9 +244,9 @@ run_default_compat_cleanup_without_backends_test() {
   assert_dir "$HOME_DIR/tmpfs"
   [ -f "$HOME_DIR/tmpfs/keep.txt" ] || fail "tmpfs contents were removed without installed backends"
   [ -f "$HOME_DIR/.config/memory-cache-for-mac/user-note.txt" ] || fail "user config directory contents were removed without installed backends"
-  assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
-  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_absent "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
 }
 
@@ -254,8 +261,8 @@ run_all_root_test() {
   MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
   HOME="$HOME_DIR" \
     "$ROOT/uninstall.sh" --all >/tmp/memory-cache-uninstall-all.out
-  assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
-  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
+  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_dir "$HOME_DIR/tmpfs"
   [ -f "$HOME_DIR/tmpfs/keep.txt" ] || fail "tmpfs contents were removed"
 }
@@ -277,17 +284,17 @@ run_sudo_all_uses_target_user_home_and_uid_test() {
   HOME="$ROOT_HOME_DIR" \
     "$ROOT/uninstall.sh" --all >/tmp/memory-cache-uninstall-sudo-all.out
 
-  assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_absent "$HOME_DIR/.config/memory-cache-for-mac/config"
   assert_absent "$HOME_DIR/.local/bin/create_ram_disk.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.ramdisk.plist"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.log"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.err.log"
-  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_absent "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_absent "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
 
-  assert_file "$ROOT_HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_file "$ROOT_HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_file "$ROOT_HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_file "$ROOT_HOME_DIR/.config/memory-cache-for-mac/config"
   assert_file "$ROOT_HOME_DIR/.local/bin/create_ram_disk.sh"
@@ -317,7 +324,7 @@ run_sudo_apfs_only_uses_target_user_home_and_uid_test() {
   HOME="$ROOT_HOME_DIR" \
     "$ROOT/uninstall.sh" --backend apfs >/tmp/memory-cache-uninstall-sudo-apfs.out
 
-  assert_absent "$HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_absent "$HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_absent "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_absent "$HOME_DIR/.config/memory-cache-for-mac/config"
   assert_absent "$HOME_DIR/.local/bin/create_ram_disk.sh"
@@ -325,13 +332,13 @@ run_sudo_apfs_only_uses_target_user_home_and_uid_test() {
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.log"
   assert_absent "$HOME_DIR/Library/Logs/memory-cache.err.log"
 
-  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+  assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
   assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
   assert_file "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
   assert_file "$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
   assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.ramdisk.plist"
 
-  assert_file "$ROOT_HOME_DIR/.local/bin/create_memory_cache.sh"
+  assert_file "$ROOT_HOME_DIR/.local/bin/create_apfs_cache.sh"
   assert_file "$ROOT_HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
   assert_file "$ROOT_HOME_DIR/.config/memory-cache-for-mac/config"
   assert_file "$ROOT_HOME_DIR/.local/bin/create_ram_disk.sh"

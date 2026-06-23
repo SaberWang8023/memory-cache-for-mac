@@ -67,7 +67,7 @@ sudo ./install.sh --backend tmpfs --size 512m
 ### `tmpfs` 安装产物
 
 ```text
-/usr/local/libexec/create_memory_cache.sh
+/usr/local/libexec/create_tmpfs_cache.sh
 /Library/LaunchDaemons/com.local.memory-cache.plist
 /Library/Logs/memory-cache.log
 /Library/Logs/memory-cache.err.log
@@ -78,7 +78,7 @@ sudo ./install.sh --backend tmpfs --size 512m
 ### `apfs` 安装产物
 
 ```text
-~/.local/bin/create_memory_cache.sh
+~/.local/bin/create_apfs_cache.sh
 ~/Library/LaunchAgents/com.local.memory-cache.plist
 ~/Library/Logs/memory-cache.log
 ~/Library/Logs/memory-cache.err.log

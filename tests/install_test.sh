@@ -82,7 +82,7 @@ HOME="$HOME_DIR" \
 
 DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
 assert_not_exists "$DAEMON_CONFIG"
-DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 assert_file "$DAEMON_SCRIPT"
 assert_contains "$DAEMON_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
 [ "$(grep -Fc "MEMORY_CACHE_INSTALLED=0" "$DAEMON_SCRIPT")" -eq 0 ] || fail "daemon runtime kept source install sentinel"
@@ -98,7 +98,7 @@ if grep -Fq "hdiutil" "$DAEMON_SCRIPT" || grep -Fq "diskutil" "$DAEMON_SCRIPT" |
 fi
 DAEMON_PLIST="$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
 assert_file "$DAEMON_PLIST"
-assert_contains "$DAEMON_PLIST" "/usr/local/libexec/create_memory_cache.sh"
+assert_contains "$DAEMON_PLIST" "/usr/local/libexec/create_tmpfs_cache.sh"
 assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.log"
 assert_contains "$DAEMON_PLIST" "/Library/Logs/memory-cache.err.log"
 
@@ -126,7 +126,7 @@ MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
 HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend tmpfs --size 2g >/tmp/memory-cache-install-daemon-quoted.out
 
-QUOTED_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
+QUOTED_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 assert_file "$QUOTED_SCRIPT"
 QUOTED_CONSTS=$(mktemp "${TMPDIR:-/tmp}/memory-cache-install-quoted.XXXXXX")
 sed -n '3,9p' "$QUOTED_SCRIPT" > "$QUOTED_CONSTS"
@@ -147,7 +147,7 @@ HOME="$HOME_DIR" \
 
 AGENT_CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 assert_not_exists "$AGENT_CONFIG"
-AGENT_SCRIPT="$HOME_DIR/.local/bin/create_memory_cache.sh"
+AGENT_SCRIPT="$HOME_DIR/.local/bin/create_apfs_cache.sh"
 assert_file "$AGENT_SCRIPT"
 assert_contains "$AGENT_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
 [ "$(grep -Fc "MEMORY_CACHE_INSTALLED=0" "$AGENT_SCRIPT")" -eq 0 ] || fail "agent runtime kept source install sentinel"
@@ -162,7 +162,7 @@ assert_not_contains "$AGENT_SCRIPT" "TARGET_HOME="
 assert_not_contains "$AGENT_SCRIPT" "TARGET_USER="
 AGENT_PLIST="$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 assert_file "$AGENT_PLIST"
-assert_contains "$AGENT_PLIST" "$HOME_DIR/.local/bin/create_memory_cache.sh"
+assert_contains "$AGENT_PLIST" "$HOME_DIR/.local/bin/create_apfs_cache.sh"
 assert_contains "$AGENT_PLIST" "$HOME_DIR/Library/Logs/memory-cache.log"
 assert_contains "$AGENT_PLIST" "$HOME_DIR/Library/Logs/memory-cache.err.log"
 
@@ -171,9 +171,11 @@ HOME_DIR="$SANDBOX_ROOT/home"
 SYSTEM_ROOT="$SANDBOX_ROOT/system"
 mkdir -p "$HOME_DIR/.local/bin" "$HOME_DIR/Library/LaunchAgents" "$SYSTEM_ROOT/Library/LaunchDaemons" "$SYSTEM_ROOT/usr/local/libexec"
 mkdir -p "$HOME_DIR/.config/memory-cache-for-mac" "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac"
+: > "$HOME_DIR/.local/bin/create_apfs_cache.sh"
 : > "$HOME_DIR/.local/bin/create_memory_cache.sh"
 : > "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
 : > "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+: > "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 : > "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 : > "$HOME_DIR/.config/memory-cache-for-mac/config"
 : > "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
@@ -185,13 +187,16 @@ MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
 HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend apfs --size 1g >/tmp/memory-cache-install-switch-to-agent.out
 assert_file "$SYSTEM_ROOT/Library/LaunchDaemons/com.local.memory-cache.plist"
+assert_file "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
 assert_file "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
-assert_file "$HOME_DIR/.local/bin/create_memory_cache.sh"
+assert_file "$HOME_DIR/.local/bin/create_apfs_cache.sh"
+assert_not_exists "$HOME_DIR/.local/bin/create_memory_cache.sh"
 assert_not_exists "$HOME_DIR/.config/memory-cache-for-mac/config"
 assert_exists "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
 
-printf '%s\n' "agent keep" > "$HOME_DIR/.local/bin/create_memory_cache.sh"
+printf '%s\n' "agent keep" > "$HOME_DIR/.local/bin/create_apfs_cache.sh"
+: > "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 : > "$HOME_DIR/.config/memory-cache-for-mac/config"
 MEMORY_CACHE_SKIP_LAUNCHCTL=1 \
 MEMORY_CACHE_TEST_EFFECTIVE_UID=0 \
@@ -201,8 +206,9 @@ MEMORY_CACHE_TEST_SYSTEM_ROOT="$SYSTEM_ROOT" \
 HOME="$HOME_DIR" \
   "$ROOT/install.sh" --backend tmpfs --size 512m >/tmp/memory-cache-install-repeat-tmpfs.out
 assert_file "$HOME_DIR/Library/LaunchAgents/com.local.memory-cache.plist"
-grep -Fq "agent keep" "$HOME_DIR/.local/bin/create_memory_cache.sh" || fail "repeat tmpfs install changed agent script"
-assert_contains "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh" "CACHE_SIZE='512m'"
+grep -Fq "agent keep" "$HOME_DIR/.local/bin/create_apfs_cache.sh" || fail "repeat tmpfs install changed agent script"
+assert_contains "$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh" "CACHE_SIZE='512m'"
+assert_not_exists "$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_not_exists "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
 assert_exists "$HOME_DIR/.config/memory-cache-for-mac/config"
 

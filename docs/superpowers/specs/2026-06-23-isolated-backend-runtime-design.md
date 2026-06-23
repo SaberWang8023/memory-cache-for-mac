@@ -131,11 +131,11 @@ sudo ./install.sh --backend tmpfs
 
 - 要求 root
 - 安装 `src/create_tmpfs_cache.sh` 的注入常量副本
-- 写入 `/usr/local/libexec/create_memory_cache.sh`
+- 写入 `/usr/local/libexec/create_tmpfs_cache.sh`
 - 写入 `/Library/LaunchDaemons/com.local.memory-cache.plist`
 - 写入 `/Library/Logs/memory-cache.log`
 - 写入 `/Library/Logs/memory-cache.err.log`
-- 清理 daemon mode 下的旧版 `com.local.ramdisk` 兼容产物
+- 清理 daemon mode 下的旧版 `com.local.ramdisk` 和 `create_memory_cache.sh` 兼容产物
 - 清理 daemon mode 下的旧 config 文件
 
 它不清理 agent/apfs 的当前安装产物。
@@ -146,11 +146,11 @@ sudo ./install.sh --backend tmpfs
 
 - 不要求 root
 - 安装 `src/create_apfs_cache.sh` 的注入常量副本
-- 写入 `~/.local/bin/create_memory_cache.sh`
+- 写入 `~/.local/bin/create_apfs_cache.sh`
 - 写入 `~/Library/LaunchAgents/com.local.memory-cache.plist`
 - 写入 `~/Library/Logs/memory-cache.log`
 - 写入 `~/Library/Logs/memory-cache.err.log`
-- 清理 agent mode 下的旧版 `com.local.ramdisk` 兼容产物
+- 清理 agent mode 下的旧版 `com.local.ramdisk` 和 `create_memory_cache.sh` 兼容产物
 - 清理 agent mode 下的旧 config 文件
 
 它不清理 daemon/tmpfs 的当前安装产物。
@@ -207,11 +207,11 @@ Run: sudo ./uninstall.sh --all
 
 - bootout `gui/<uid>/com.local.memory-cache`
 - 删除 `~/Library/LaunchAgents/com.local.memory-cache.plist`
-- 删除 `~/.local/bin/create_memory_cache.sh`
+- 删除 `~/.local/bin/create_apfs_cache.sh`
 - 删除 `~/Library/Logs/memory-cache.log`
 - 删除 `~/Library/Logs/memory-cache.err.log`
 - 删除 agent 旧 config 文件
-- 删除 agent 旧版 `com.local.ramdisk` 兼容产物
+- 删除 agent 旧版 `com.local.ramdisk` 和 `create_memory_cache.sh` 兼容产物
 
 不触碰 daemon/tmpfs 当前安装产物。
 
@@ -222,11 +222,11 @@ Run: sudo ./uninstall.sh --all
 - 要求 root
 - bootout `system/com.local.memory-cache`
 - 删除 `/Library/LaunchDaemons/com.local.memory-cache.plist`
-- 删除 `/usr/local/libexec/create_memory_cache.sh`
+- 删除 `/usr/local/libexec/create_tmpfs_cache.sh`
 - 删除 `/Library/Logs/memory-cache.log`
 - 删除 `/Library/Logs/memory-cache.err.log`
 - 删除 daemon 旧 config 文件
-- 删除 daemon 旧版 `com.local.ramdisk` 兼容产物
+- 删除 daemon 旧版 `com.local.ramdisk` 和 `create_memory_cache.sh` 兼容产物
 
 不触碰 agent/apfs 当前安装产物。
 
