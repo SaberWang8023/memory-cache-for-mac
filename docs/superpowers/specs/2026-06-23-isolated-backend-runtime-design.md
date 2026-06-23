@@ -107,6 +107,24 @@ sudo ./install.sh --backend tmpfs
 
 这两条命令可以先后执行。后执行的安装不会删除前一个 backend 的当前安装产物。
 
+### 重复安装
+
+重复安装同一个 backend 必须是幂等覆盖：
+
+- 重复执行 `sudo ./install.sh --backend tmpfs` 只覆盖 daemon/tmpfs 的脚本、plist 和日志路径。
+- 重复执行 `./install.sh --backend apfs` 只覆盖 agent/apfs 的脚本、plist 和日志路径。
+- 重复安装不删除另一个 backend 的当前安装产物。
+- 重复安装不自动 `umount ~/tmpfs`。
+- 重复安装不自动 eject `/Volumes/Ramdisk`。
+
+如果用户重复安装时修改 `--size`，安装器会更新已安装脚本中的 `CACHE_SIZE`，但不会重建已经挂载的 tmpfs 或 APFS ramdisk。
+
+因此：
+
+- 如果目标 backend 当前没有挂载，下次 service 启动会使用新 size。
+- 如果目标 backend 已经挂载，runtime 仍然识别为“已经挂载”，不会为了应用新 size 自动卸载或重建。
+- 如需让新 size 立即生效，用户需要自行确认数据可丢弃后手动 `umount ~/tmpfs` 或 `diskutil eject /Volumes/Ramdisk`，再重新启动对应 service。
+
 ### tmpfs 安装
 
 `tmpfs` 安装只负责 daemon/tmpfs：
@@ -250,6 +268,8 @@ README 需要更新：
 
 - `--backend tmpfs` 只安装 daemon/tmpfs，不删除已有 agent/apfs。
 - `--backend apfs` 只安装 agent/apfs，不删除已有 daemon/tmpfs。
+- 重复安装 `tmpfs` 会覆盖 daemon/tmpfs 脚本，不删除 agent/apfs。
+- 重复安装 `apfs` 会覆盖 agent/apfs 脚本，不删除 daemon/tmpfs。
 - 无 `--backend` 时仍只安装推荐 backend。
 - daemon runtime 安装副本不包含 APFS 关键字或 APFS 命令。
 - agent runtime 安装副本不包含 tmpfs 关键字或 `mount_tmpfs`。
@@ -275,6 +295,8 @@ README 需要更新：
 - agent 安装副本不包含 tmpfs 运行逻辑。
 - tmpfs 和 apfs 可以同时安装。
 - 安装任一 backend 不删除另一个 backend 的当前安装产物。
+- 重复安装同一 backend 只覆盖该 backend 的安装产物。
+- 重复安装修改 size 不自动重建已经挂载的 tmpfs 或 APFS ramdisk。
 - uninstall 可以按 backend 卸载。
 - `--all` 不会中途 sudo；需要 root 时在任何删除前失败。
 - README 与 README.zh-CN 都使用简体中文描述新行为。
