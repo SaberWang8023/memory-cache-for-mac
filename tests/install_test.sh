@@ -67,6 +67,7 @@ DAEMON_CONFIG="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/con
 assert_not_exists "$DAEMON_CONFIG"
 DAEMON_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$DAEMON_SCRIPT"
+assert_contains "$DAEMON_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
 assert_contains "$DAEMON_SCRIPT" "BACKEND='tmpfs'"
 assert_contains "$DAEMON_SCRIPT" "CACHE_SIZE='2g'"
 assert_contains "$DAEMON_SCRIPT" "SERVICE_MODE='daemon'"
@@ -105,9 +106,10 @@ HOME="$HOME_DIR" \
 QUOTED_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
 assert_file "$QUOTED_SCRIPT"
 QUOTED_CONSTS=$(mktemp "${TMPDIR:-/tmp}/memory-cache-install-quoted.XXXXXX")
-sed -n '3,8p' "$QUOTED_SCRIPT" > "$QUOTED_CONSTS"
-unset BACKEND CACHE_SIZE SERVICE_MODE TARGET_USER TARGET_HOME
+sed -n '3,9p' "$QUOTED_SCRIPT" > "$QUOTED_CONSTS"
+unset MEMORY_CACHE_INSTALLED BACKEND CACHE_SIZE SERVICE_MODE TARGET_USER TARGET_HOME
 . "$QUOTED_CONSTS"
+[ "$MEMORY_CACHE_INSTALLED" = "1" ] || fail "install marker did not round-trip"
 [ "$BACKEND" = "tmpfs" ] || fail "quoted BACKEND did not round-trip"
 [ "$CACHE_SIZE" = "2g" ] || fail "quoted CACHE_SIZE did not round-trip"
 [ "$SERVICE_MODE" = "daemon" ] || fail "quoted SERVICE_MODE did not round-trip"
@@ -124,6 +126,7 @@ AGENT_CONFIG="$HOME_DIR/.config/memory-cache-for-mac/config"
 assert_not_exists "$AGENT_CONFIG"
 AGENT_SCRIPT="$HOME_DIR/.local/bin/create_memory_cache.sh"
 assert_file "$AGENT_SCRIPT"
+assert_contains "$AGENT_SCRIPT" "MEMORY_CACHE_INSTALLED='1'"
 assert_contains "$AGENT_SCRIPT" "BACKEND='apfs'"
 assert_contains "$AGENT_SCRIPT" "CACHE_SIZE='512m'"
 assert_contains "$AGENT_SCRIPT" "SERVICE_MODE='agent'"

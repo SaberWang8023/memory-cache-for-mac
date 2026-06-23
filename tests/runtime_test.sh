@@ -26,6 +26,7 @@ make_runtime_script() {
 
   {
     sed -n '1p' "$SCRIPT"
+    printf '%s\n' "MEMORY_CACHE_INSTALLED='1'"
     printf '%s\n' "BACKEND='$backend'"
     printf '%s\n' "SERVICE_MODE='$service_mode'"
     printf '%s\n' "CACHE_SIZE='$cache_size'"
@@ -37,10 +38,16 @@ make_runtime_script() {
 }
 
 HOME_DIR=$(make_home)
-if HOME="$HOME_DIR" "$SCRIPT" >/tmp/memory-cache-runtime-missing-constants.out 2>&1; then
-  fail "missing embedded constants unexpectedly succeeded"
+if BACKEND=tmpfs \
+  SERVICE_MODE=daemon \
+  CACHE_SIZE=1g \
+  TARGET_USER=saber \
+  TARGET_HOME="$HOME_DIR" \
+  HOME="$HOME_DIR" \
+  "$SCRIPT" >/tmp/memory-cache-runtime-missing-constants.out 2>&1; then
+  fail "source runtime without install marker unexpectedly succeeded"
 fi
-grep -Fq "Missing installed constant: BACKEND" /tmp/memory-cache-runtime-missing-constants.out || fail "missing constants error not found"
+grep -Fq "Missing installed constant: MEMORY_CACHE_INSTALLED" /tmp/memory-cache-runtime-missing-constants.out || fail "missing install marker error not found"
 
 HOME_DIR=$(make_home)
 RUNTIME="$HOME_DIR/create_memory_cache.sh"
@@ -74,9 +81,6 @@ if HOME="$HOME_DIR" "$RUNTIME" >/tmp/memory-cache-runtime-missing-target-home.ou
 fi
 grep -Fq "Missing installed constant: TARGET_HOME" /tmp/memory-cache-runtime-missing-target-home.out || fail "missing TARGET_HOME error not found"
 
-HOME_DIR=$(make_home)
-RUNTIME="$HOME_DIR/create_memory_cache.sh"
-make_runtime_script "$RUNTIME" apfs agent 1g saber "$HOME_DIR"
 HOME_DIR=$(make_home)
 RUNTIME="$HOME_DIR/create_memory_cache.sh"
 make_runtime_script "$RUNTIME" apfs agent bad saber "$HOME_DIR"
@@ -118,6 +122,53 @@ grep -Fq "Unsupported cache size" /tmp/memory-cache-runtime-command-injection-un
 [ ! -f "$STUB_DIR/hdiutil.invoked" ] || fail "injected HDIUTIL_CMD was executed without MEMORY_CACHE_TEST_COMMANDS"
 [ ! -f "$STUB_DIR/diskutil.invoked" ] || fail "injected DISKUTIL_CMD was executed without MEMORY_CACHE_TEST_COMMANDS"
 [ ! -f "$STUB_DIR/mount.invoked" ] || fail "injected MOUNT_CMD was executed without MEMORY_CACHE_TEST_COMMANDS"
+
+HOME_DIR=$(make_home)
+RUNTIME="$HOME_DIR/create_memory_cache.sh"
+make_runtime_script "$RUNTIME" apfs agent 1g saber "$HOME_DIR"
+STUB_DIR="$HOME_DIR/bin-stubs-apfs-missing-mount"
+mkdir -p "$STUB_DIR"
+DETACH_LOG="$HOME_DIR/detach.log"
+APFS_TEST_MOUNT_PATH="$HOME_DIR/apfs-mount"
+
+cat > "$STUB_DIR/hdiutil" <<EOF_STUB
+#!/bin/sh
+if [ "\$1" = "attach" ]; then
+  echo "/dev/disk9"
+  exit 0
+fi
+if [ "\$1" = "detach" ]; then
+  printf '%s\n' "\$*" >> "$DETACH_LOG"
+  exit 0
+fi
+echo "unexpected hdiutil args: \$*" >&2
+exit 1
+EOF_STUB
+chmod 755 "$STUB_DIR/hdiutil"
+
+cat > "$STUB_DIR/diskutil" <<'EOF_STUB'
+#!/bin/sh
+exit 0
+EOF_STUB
+chmod 755 "$STUB_DIR/diskutil"
+
+cat > "$STUB_DIR/mount" <<'EOF_STUB'
+#!/bin/sh
+echo "/dev/disk0s1 on /"
+EOF_STUB
+chmod 755 "$STUB_DIR/mount"
+
+if HOME="$HOME_DIR" \
+  MEMORY_CACHE_TEST_COMMANDS=1 \
+  MEMORY_CACHE_TEST_APFS_MOUNT_PATH="$APFS_TEST_MOUNT_PATH" \
+  HDIUTIL_CMD="$STUB_DIR/hdiutil" \
+  DISKUTIL_CMD="$STUB_DIR/diskutil" \
+  MOUNT_CMD="$STUB_DIR/mount" \
+  "$RUNTIME" >/tmp/memory-cache-runtime-apfs-missing-mount.out 2>&1; then
+  fail "apfs mountpoint-missing scenario unexpectedly succeeded"
+fi
+grep -Fq "APFS volume was not mounted at $APFS_TEST_MOUNT_PATH" /tmp/memory-cache-runtime-apfs-missing-mount.out || fail "missing APFS mount failure error"
+grep -Fq "detach /dev/disk9" "$DETACH_LOG" || fail "APFS failure did not detach ramdisk"
 
 HOME_DIR=$(make_home)
 mkdir -p "$HOME_DIR/tmpfs"

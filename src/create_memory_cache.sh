@@ -106,11 +106,14 @@ validate_apfs_disk_name() {
 }
 
 load_embedded_runtime_config() {
+  require_installed_constant MEMORY_CACHE_INSTALLED
   require_installed_constant BACKEND
   require_installed_constant SERVICE_MODE
   require_installed_constant CACHE_SIZE
   require_installed_constant TARGET_USER
   require_installed_constant TARGET_HOME
+
+  [ "$MEMORY_CACHE_INSTALLED" = "1" ] || fail "Missing installed constant: MEMORY_CACHE_INSTALLED"
 
   case "$SERVICE_MODE" in
     agent|daemon) ;;
@@ -126,6 +129,9 @@ load_embedded_runtime_config() {
   TMPFS_MOUNT_PATH="$TARGET_HOME/tmpfs"
   APFS_DISK_NAME=Ramdisk
   APFS_MOUNT_PATH="/Volumes/$APFS_DISK_NAME"
+  if [ "${MEMORY_CACHE_TEST_COMMANDS:-0}" = "1" ] && [ -n "${MEMORY_CACHE_TEST_APFS_MOUNT_PATH:-}" ]; then
+    APFS_MOUNT_PATH=$MEMORY_CACHE_TEST_APFS_MOUNT_PATH
+  fi
   CREATE_DIRS="Downloads Cache/Chrome Cache/Music"
   validate_apfs_disk_name
 }

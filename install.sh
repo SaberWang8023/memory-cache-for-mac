@@ -387,6 +387,7 @@ install_runtime_script() {
     sed -n '1p' "$SOURCE_SCRIPT"
     printf '\n'
     printf '%s\n' "# 由 install.sh 安装。修改这些值请重新运行 install.sh。"
+    printf '%s\n' "MEMORY_CACHE_INSTALLED='1'"
     printf 'BACKEND=%s\n' "$(quote_shell_value "$backend")"
     printf 'CACHE_SIZE=%s\n' "$(quote_shell_value "$cache_size")"
     printf 'SERVICE_MODE=%s\n' "$(quote_shell_value "$SERVICE_MODE")"
