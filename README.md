@@ -107,16 +107,6 @@ sudo ./install.sh --backend tmpfs --size 512m
 
 挂载路径和默认缓存目录固定；当前版本不支持通过配置文件修改。
 
-## 从 ramdisk-for-mac 迁移
-
-安装当前版本时，会停止并删除旧的 `com.local.ramdisk` plist 与 `create_ram_disk.sh`。
-
-已有的 `/Volumes/Ramdisk` 不会被自动 eject。如果确认卷里的内容已经不需要，可以手动执行：
-
-```sh
-diskutil eject /Volumes/Ramdisk
-```
-
 ## 卸载
 
 ```sh
@@ -127,7 +117,7 @@ sudo ./uninstall.sh --all
 
 不带参数时，如果只发现一个 backend，会卸载该 backend；如果两个 backend 都存在，会要求明确指定 `--backend apfs`、`--backend tmpfs` 或 `--all`。
 
-`--all` 包含 tmpfs 时必须从一开始就使用 `sudo`。卸载会移除目标 backend 的安装文件、旧配置清理产物和日志，但不会自动做下面这些事：
+`--all` 包含 tmpfs 时必须从一开始就使用 `sudo`。卸载会移除目标 backend 的安装文件和日志，但不会自动做下面这些事：
 
 - 不会自动卸载 `~/tmpfs`
 - 不会自动删除 `~/tmpfs` 目录

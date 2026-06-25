@@ -6,7 +6,6 @@ PATH=/usr/bin:/bin:/usr/sbin:/sbin
 export PATH
 
 LABEL="com.local.memory-cache"
-OLD_LABEL="com.local.ramdisk"
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 TMPFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_tmpfs_cache.sh"
 APFS_SOURCE_SCRIPT="$SCRIPT_DIR/src/create_apfs_cache.sh"
@@ -21,7 +20,6 @@ SIZE_ARG=""
 SERVICE_MODE=""
 TARGET_USER=""
 TARGET_HOME=""
-TARGET_UID=""
 SYSTEM_ROOT=""
 INSTALL_SCRIPT=""
 PLIST_PATH=""
@@ -29,8 +27,6 @@ PLIST_TEMPLATE=""
 LOG_DIR=""
 LOG_PATH=""
 ERR_LOG_PATH=""
-OLD_SCRIPT=""
-OLD_PLIST=""
 
 usage() {
   cat <<'USAGE'
@@ -193,9 +189,6 @@ set_paths_for_mode() {
       LOG_DIR="$TARGET_HOME/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
-      OLD_MEMORY_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
-      OLD_SCRIPT="$TARGET_HOME/.local/bin/create_ram_disk.sh"
-      OLD_PLIST="$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist"
       ;;
     daemon)
       INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
@@ -204,9 +197,6 @@ set_paths_for_mode() {
       LOG_DIR="$SYSTEM_ROOT/Library/Logs"
       LOG_PATH="$LOG_DIR/memory-cache.log"
       ERR_LOG_PATH="$LOG_DIR/memory-cache.err.log"
-      OLD_MEMORY_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
-      OLD_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
-      OLD_PLIST="$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist"
       ;;
     *)
       echo "Unsupported service mode: $service_mode" >&2
@@ -302,35 +292,6 @@ choose_size() {
   else
     printf '%s\n' "$recommended"
   fi
-}
-
-remove_files_if_present() {
-  rm -f "$@"
-}
-
-cleanup_current_mode_legacy() {
-  if [ "$SERVICE_MODE" = "agent" ]; then
-    if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-      launchctl bootout "gui/$TARGET_UID" "$OLD_PLIST" >/dev/null 2>&1 || true
-    fi
-  else
-    if [ "$SKIP_LAUNCHCTL" != "1" ]; then
-      launchctl bootout system "$OLD_PLIST" >/dev/null 2>&1 || true
-    fi
-  fi
-
-  remove_files_if_present "$OLD_PLIST" "$OLD_SCRIPT" "$OLD_MEMORY_SCRIPT"
-}
-
-cleanup_legacy_config_for_mode() {
-  case "$SERVICE_MODE" in
-    agent)
-      remove_files_if_present "$TARGET_HOME/.config/memory-cache-for-mac/config"
-      ;;
-    daemon)
-      remove_files_if_present "$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
-      ;;
-  esac
 }
 
 validate_target_context() {
@@ -446,12 +407,9 @@ TARGET_USER=$(resolve_target_user) || {
 }
 TARGET_HOME=$(resolve_target_home "$TARGET_USER")
 [ -n "$TARGET_HOME" ] || { echo "Could not resolve target home for $TARGET_USER" >&2; exit 1; }
-TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null || effective_uid)
 validate_target_context
 
 set_paths_for_mode "$SERVICE_MODE"
-cleanup_current_mode_legacy
-cleanup_legacy_config_for_mode
 install_files
 load_service
 

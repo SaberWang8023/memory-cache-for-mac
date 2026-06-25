@@ -6,7 +6,6 @@ PATH=/usr/bin:/bin:/usr/sbin:/sbin
 export PATH
 
 LABEL="com.local.memory-cache"
-OLD_LABEL="com.local.ramdisk"
 SKIP_LAUNCHCTL="${MEMORY_CACHE_SKIP_LAUNCHCTL:-0}"
 SYSTEM_ROOT="${MEMORY_CACHE_TEST_SYSTEM_ROOT:-/}"
 DAEMON_PROBE_ROOT="${MEMORY_CACHE_TEST_DAEMON_PROBE_ROOT:-$SYSTEM_ROOT}"
@@ -18,21 +17,13 @@ TARGET_UID=""
 
 AGENT_PLIST_PATH=""
 AGENT_INSTALL_SCRIPT=""
-AGENT_CONFIG_PATH=""
 AGENT_LOG_FILE=""
 AGENT_ERR_LOG_FILE=""
 
 DAEMON_PLIST_PATH="$SYSTEM_ROOT/Library/LaunchDaemons/$LABEL.plist"
 DAEMON_INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_tmpfs_cache.sh"
-DAEMON_OLD_MEMORY_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_memory_cache.sh"
-DAEMON_CONFIG_PATH="$SYSTEM_ROOT/Library/Application Support/memory-cache-for-mac/config"
 DAEMON_LOG_FILE="$SYSTEM_ROOT/Library/Logs/memory-cache.log"
 DAEMON_ERR_LOG_FILE="$SYSTEM_ROOT/Library/Logs/memory-cache.err.log"
-
-OLD_AGENT_PLIST_PATH=""
-OLD_AGENT_INSTALL_SCRIPT=""
-OLD_DAEMON_PLIST_PATH="$SYSTEM_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist"
-OLD_DAEMON_INSTALL_SCRIPT="$SYSTEM_ROOT/usr/local/libexec/create_ram_disk.sh"
 
 TARGET_BACKEND=""
 UNINSTALL_ALL=0
@@ -133,32 +124,22 @@ resolve_target_uid() {
 set_agent_paths() {
   AGENT_PLIST_PATH="$TARGET_HOME/Library/LaunchAgents/$LABEL.plist"
   AGENT_INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_apfs_cache.sh"
-  AGENT_OLD_MEMORY_SCRIPT="$TARGET_HOME/.local/bin/create_memory_cache.sh"
-  AGENT_CONFIG_PATH="$TARGET_HOME/.config/memory-cache-for-mac/config"
   AGENT_LOG_FILE="$TARGET_HOME/Library/Logs/memory-cache.log"
   AGENT_ERR_LOG_FILE="$TARGET_HOME/Library/Logs/memory-cache.err.log"
-  OLD_AGENT_PLIST_PATH="$TARGET_HOME/Library/LaunchAgents/$OLD_LABEL.plist"
-  OLD_AGENT_INSTALL_SCRIPT="$TARGET_HOME/.local/bin/create_ram_disk.sh"
 }
 
 daemon_assets_exist() {
   [ -e "$DAEMON_PROBE_ROOT/Library/LaunchDaemons/$LABEL.plist" ] ||
   [ -e "$DAEMON_PROBE_ROOT/usr/local/libexec/create_tmpfs_cache.sh" ] ||
-  [ -e "$DAEMON_PROBE_ROOT/usr/local/libexec/create_memory_cache.sh" ] ||
-  [ -e "$DAEMON_PROBE_ROOT/Library/Application Support/memory-cache-for-mac/config" ] ||
   [ -e "$DAEMON_PROBE_ROOT/Library/Logs/memory-cache.log" ] ||
-  [ -e "$DAEMON_PROBE_ROOT/Library/Logs/memory-cache.err.log" ] ||
-  [ -e "$DAEMON_PROBE_ROOT/Library/LaunchDaemons/$OLD_LABEL.plist" ] ||
-  [ -e "$DAEMON_PROBE_ROOT/usr/local/libexec/create_ram_disk.sh" ]
+  [ -e "$DAEMON_PROBE_ROOT/Library/Logs/memory-cache.err.log" ]
 }
 
 agent_assets_exist() {
   [ -e "$AGENT_PLIST_PATH" ] ||
   [ -e "$AGENT_INSTALL_SCRIPT" ] ||
-  [ -e "$AGENT_OLD_MEMORY_SCRIPT" ] ||
-  [ -e "$AGENT_CONFIG_PATH" ] ||
-  [ -e "$OLD_AGENT_PLIST_PATH" ] ||
-  [ -e "$OLD_AGENT_INSTALL_SCRIPT" ]
+  [ -e "$AGENT_LOG_FILE" ] ||
+  [ -e "$AGENT_ERR_LOG_FILE" ]
 }
 
 resolve_uninstall_targets() {
@@ -234,18 +215,12 @@ DAEMON_DOMAIN="system"
 
 uninstall_apfs() {
   bootout_if_needed "$AGENT_DOMAIN" "$LABEL" "$AGENT_PLIST_PATH"
-  bootout_if_needed "$AGENT_DOMAIN" "$OLD_LABEL" "$OLD_AGENT_PLIST_PATH"
-  rm -f "$AGENT_PLIST_PATH" "$AGENT_INSTALL_SCRIPT" "$AGENT_OLD_MEMORY_SCRIPT" "$AGENT_CONFIG_PATH"
-  rm -f "$AGENT_LOG_FILE" "$AGENT_ERR_LOG_FILE"
-  rm -f "$OLD_AGENT_PLIST_PATH" "$OLD_AGENT_INSTALL_SCRIPT"
+  rm -f "$AGENT_PLIST_PATH" "$AGENT_INSTALL_SCRIPT" "$AGENT_LOG_FILE" "$AGENT_ERR_LOG_FILE"
 }
 
 uninstall_tmpfs() {
   bootout_if_needed "$DAEMON_DOMAIN" "$LABEL" "$DAEMON_PLIST_PATH"
-  bootout_if_needed "$DAEMON_DOMAIN" "$OLD_LABEL" "$OLD_DAEMON_PLIST_PATH"
-  rm -f "$DAEMON_PLIST_PATH" "$DAEMON_INSTALL_SCRIPT" "$DAEMON_OLD_MEMORY_SCRIPT" "$DAEMON_CONFIG_PATH"
-  rm -f "$DAEMON_LOG_FILE" "$DAEMON_ERR_LOG_FILE"
-  rm -f "$OLD_DAEMON_PLIST_PATH" "$OLD_DAEMON_INSTALL_SCRIPT"
+  rm -f "$DAEMON_PLIST_PATH" "$DAEMON_INSTALL_SCRIPT" "$DAEMON_LOG_FILE" "$DAEMON_ERR_LOG_FILE"
 }
 
 parse_args "$@"
