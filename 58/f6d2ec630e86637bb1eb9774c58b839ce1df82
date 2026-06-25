@@ -1,0 +1,25 @@
+tests/uninstall_test.sh
+  s_af24112ef7426c::t_5ec22174b13bee 61
+  s_af24112ef7426c::t_61c9d0fb85b295 195
+  s_af24112ef7426c::t_728b497f5e3630 308
+uninstall.sh
+  s_af24112ef7426c::t_a2aee947e48669 135,141-142,218,223
+README.md
+  s_af24112ef7426c::t_3983c1bf22eec9 120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "58f6d2ec630e86637bb1eb9774c58b839ce1df82",
+  "prompts": {},
+  "sessions": {
+    "s_af24112ef7426c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019efccc-eef7-7a03-9b7b-25c64386e981",
+        "model": "gpt-5.5"
+      },
+      "human_author": "SaberWang <saberwang8023@163.com>"
+    }
+  }
+}
